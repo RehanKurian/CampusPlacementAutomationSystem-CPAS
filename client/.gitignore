@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+# Env files
+.env
+
+# OS generated files
+.DS_Store
