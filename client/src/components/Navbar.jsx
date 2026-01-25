@@ -1,21 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, LogOut, User, Briefcase, BarChart3 } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userType, setUserType] = useState('student'); // 'student' or 'recruiter'
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (token && user?.role) {
-      setIsLoggedIn(true);
-      setUserType(user.role === 'admin' ? 'recruiter' : 'student');
-    }
-  }, []);
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (token && user?.role) {
+        setIsLoggedIn(true);
+        setUserType(user.role === 'admin' ? 'recruiter' : 'student');
+        setUserName(user.name || '');
+      } else {
+        setIsLoggedIn(false);
+        setUserName('');
+      }
+    };
+
+    checkAuth();
+
+    // Listen for storage changes (in case of logout in another tab)
+    window.addEventListener('storage', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+    };
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setIsOpen(false);
+    navigate('/');
+  };
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
@@ -77,13 +102,13 @@ const Navbar = () => {
             {!isLoggedIn ? (
               <>
                 <Link
-                  to="/auth"
+                  to="/auth?mode=login"
                   className="px-6 py-2 text-slate-300 hover:text-white border border-slate-600 rounded-lg text-sm font-medium transition-all duration-300 hover:border-slate-400"
                 >
                   Login
                 </Link>
                 <Link
-                  to="/auth"
+                  to="/auth?mode=signup"
                   className="px-6 py-2 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300"
                 >
                   Sign Up
@@ -93,16 +118,12 @@ const Navbar = () => {
               <>
                 <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/50 rounded-lg border border-slate-700">
                   <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-                    {isLoggedIn ? 'U' : ''}
+                    {userName ? userName.charAt(0).toUpperCase() : 'U'}
                   </div>
-                  <span className="text-sm text-slate-300">{userType}</span>
+                  <span className="text-sm text-slate-300 capitalize">{userType}</span>
                 </div>
                 <button
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    setIsLoggedIn(false);
-                  }}
+                  onClick={handleLogout}
                   className="px-4 py-2 text-slate-300 hover:text-red-400 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 hover:bg-red-500/10"
                 >
                   <LogOut size={18} />
@@ -132,7 +153,7 @@ const Navbar = () => {
                     key={link.path}
                     to={link.path}
                     onClick={() => setIsOpen(false)}
-                    className={`block px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 ${
+                    className={` px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 ${
                       isActive(link.path)
                         ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                         : 'text-slate-300 hover:bg-slate-800/50'
@@ -150,26 +171,23 @@ const Navbar = () => {
               {!isLoggedIn ? (
                 <>
                   <Link
-                    to="/auth"
+                    to="/auth?mode=login"
                     onClick={() => setIsOpen(false)}
                     className="block w-full px-4 py-2 text-center text-slate-300 hover:text-white border border-slate-600 rounded-lg text-sm font-medium transition-all duration-300 hover:border-slate-400"
                   >
                     Login
                   </Link>
                   <Link
-                    to="/auth"
+                    to="/auth?mode=signup"
                     onClick={() => setIsOpen(false)}
-                    className="block w-full px-4 py-2 text-center bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300"
+                    className="block w-full px-4 py-2 text-center bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300"
                   >
                     Sign Up
                   </Link>
                 </>
               ) : (
                 <button
-                  onClick={() => {
-                    setIsLoggedIn(false);
-                    setIsOpen(false);
-                  }}
+                  onClick={handleLogout}
                   className="w-full px-4 py-2 text-slate-300 hover:text-red-400 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 hover:bg-red-500/10"
                 >
                   <LogOut size={18} />

@@ -12,7 +12,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 const mongoUri = process.env.MONGODB_URI;
-const jwtSecret = process.env.JWT_SECRET || 'dev_secret_change_me';
+const jwtSecret = process.env.JWT_SECRET ;
 
 app.use(cors());
 app.use(express.json());
@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 // Auth: Register
 app.post('/api/auth/register', async (req, res) => {
 	try {
-		const { name, email, password, role = 'student', cgpa, resume } = req.body;
+		const { name, email, password, role = 'student', cgpa, resume } = req.body;// this line extracts the fields from the request body
 		if (!name || !email || !password) {
 			return res.status(400).json({ message: 'Name, email, and password are required.' });
 		}
@@ -34,14 +34,14 @@ app.post('/api/auth/register', async (req, res) => {
 			return res.status(409).json({ message: 'Email already registered.' });
 		}
 
-		const hashed = await bcrypt.hash(password, 10);
+		const hashed = await bcrypt.hash(password, 10);// hash the password with a salt round of 10
 
 		const user = new User({ name, email, password: hashed, role, cgpa, resume });
 		await user.save();
 
-		const token = jwt.sign({ id: user._id, role: user.role }, jwtSecret, { expiresIn: '7d' });
+		const token = jwt.sign({ id: user._id, role: user.role }, jwtSecret, { expiresIn: '7d' });// create a JWT token valid for 7 days for the new user
 
-		return res.status(201).json({
+		return res.status(201).json({      // respond with success status and user info to the client
 			message: 'Registration successful',
 			token,
 			user: {

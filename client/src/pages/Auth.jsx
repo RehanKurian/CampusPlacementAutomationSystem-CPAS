@@ -13,10 +13,13 @@ import {
   ChevronRight,
   Sparkles
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const Auth = () => {
-   const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const modeParam = searchParams.get('mode'); // 'login' or 'signup'
+  
+  const [isLogin, setIsLogin] = useState(modeParam === 'signup' ? false : true);
   const [userType, setUserType] = useState('student'); // 'student' or 'recruiter'
   const [showPassword, setShowPassword] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -60,7 +63,7 @@ const Auth = () => {
       if (!res.ok) throw new Error(data?.message || 'Request failed');
 
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('user', JSON.stringify(data.user));//to store user details in local storage 
 
       if (data.user.role === 'admin') navigate('/admin/dashboard');
       else navigate('/student/dashboard');
@@ -82,11 +85,11 @@ const Auth = () => {
       </div>
 
       {/* Main Glass Card */}
-      <div className="relative z-10 w-full max-w-5xl bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[650px]">
+      <div className="relative z-10 w-full max-w-5xl bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-162.5">
         
         {/* Left Side: Visual & Branding */}
         <div className={`relative w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-between transition-all duration-500 overflow-hidden group
-          ${userType === 'student' ? 'bg-gradient-to-br from-indigo-600/90 to-blue-800/90' : 'bg-gradient-to-br from-slate-700/90 to-slate-900/90'}
+          ${userType === 'student' ? 'bg-linear-to-br from-indigo-600/90 to-blue-800/90' : 'bg-linear-to-br from-slate-700/90 to-slate-900/90'}
         `}>
           {/* Background Pattern Overlay */}
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
@@ -107,15 +110,15 @@ const Auth = () => {
               <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20">
                 <Sparkles className="w-5 h-5 text-yellow-300" />
               </div>
-              <span className="text-xl font-bold tracking-wider text-white">CPAS <span className="opacity-70 font-normal">NEXUS</span></span>
+              <span className="text-xl font-bold tracking-wider text-white">CPAS </span>
             </div>
             
             <div className="space-y-6 mt-12">
               <h1 className="text-4xl md:text-5xl font-bold leading-tight">
                 {userType === 'student' ? (
-                  <>Launch Your <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-100">Dream Career</span></>
+                  <>Launch Your <br/><span className="text-transparent bg-clip-text bg-linear-to-r from-blue-200 to-indigo-100">Dream Career</span></>
                 ) : (
-                  <>Discover Top <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-emerald-100">Campus Talent</span></>
+                  <>Discover Top <br/><span className="text-transparent bg-clip-text bg-linear-to-r from-blue-200 to-emerald-100">Campus Talent</span></>
                 )}
               </h1>
               <p className="text-blue-100/80 text-lg leading-relaxed max-w-sm">
@@ -151,7 +154,7 @@ const Auth = () => {
         <div className="w-full md:w-1/2 p-8 md:p-12 bg-slate-900/60 relative flex flex-col justify-center">
           
           {/* Top User Toggle */}
-          <div className="absolute top-8 right-8 flex bg-slate-800/50 p-1 rounded-xl border border-white/5 backdrop-blur-sm">
+          <div className="absolute top-5 right-34 flex bg-slate-800/50 p-1 rounded-xl border border-white/5 backdrop-blur-sm">
             <button 
               onClick={() => setUserType('student')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${userType === 'student' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25' : 'text-slate-400 hover:text-white'}`}
@@ -170,7 +173,7 @@ const Auth = () => {
 
           <div className={`max-w-md w-full mx-auto transition-opacity duration-300 ${isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
             <div className="mb-8">
-              <h2 className="text-3xl font-bold text-white mb-2">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+              <h2 className="text-3xl font-bold text-white mb-2 mt-10">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
               <p className="text-slate-400">
                 {isLogin 
                   ? `Enter your ${userType} credentials to access the portal.` 
@@ -270,8 +273,8 @@ const Auth = () => {
                 disabled={loading}
                 className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg transform transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group
                   ${userType === 'student' 
-                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 shadow-indigo-500/25 hover:shadow-indigo-500/40' 
-                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/25 hover:shadow-emerald-500/40'
+                    ? 'bg-linear-to-r from-indigo-600 to-blue-600 shadow-indigo-500/25 hover:shadow-indigo-500/40' 
+                    : 'bg-linear-to-r from-emerald-600 to-teal-600 shadow-emerald-500/25 hover:shadow-emerald-500/40'
                   }`}
               >
                 {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}

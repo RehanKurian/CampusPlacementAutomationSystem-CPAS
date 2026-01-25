@@ -1,20 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight,
-  Sparkles,
-  TrendingUp,
-  Users,
-  Zap,
-  CheckCircle,
-  Globe,
-  BarChart3,
-  Briefcase,
-  GraduationCap,
-  Star,
-  ArrowUpRight,
-  ArrowDownRight
-} from 'lucide-react';
+import {ArrowRight,Sparkles,TrendingUp,Users,Zap,CheckCircle,Globe,BarChart3, Briefcase, GraduationCap,Star,ArrowUpRight, ArrowDownRight} from 'lucide-react';
 
 const Home = () => {
   const [scrollY, setScrollY] = useState(0);
@@ -89,17 +75,11 @@ const Home = () => {
   return (
     <div className="w-full overflow-hidden bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center pt-20 px-4 md:px-8">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-          <div className="absolute top-40 right-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '4s' }}></div>
-        </div>
+      <section className="relative h-screen flex items-center justify-center -mt-8 px-0 md:px-0">       
 
         {/* Content */}
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full mb-8 hover:bg-blue-500/20 transition-colors">
+        <div className="relative z-10 max-w-4xl mx-auto text-center px-4">
+          <div className="inline-flex items-center gap-2 px-4 py-0 bg-blue-500/10 border border-blue-500/30 rounded-full mb-8 hover:bg-blue-500/20 transition-colors">
             <Sparkles size={18} className="text-blue-400" />
             <span className="text-blue-300 text-sm font-medium">Welcome to the Future of Placements</span>
           </div>
@@ -115,7 +95,7 @@ const Home = () => {
             Connect with top companies, discover perfect opportunities, and launch your career with confidence. All in one intelligent platform.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
             <Link
               to="/auth"
               className="px-8 py-4 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 transform hover:scale-105"
