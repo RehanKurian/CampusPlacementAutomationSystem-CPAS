@@ -29,6 +29,8 @@ const Auth = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName]   = useState('');
   const [email, setEmail]         = useState('');
+  const [usn, setUsn]             = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [password, setPassword]   = useState('');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
@@ -50,7 +52,14 @@ const Auth = () => {
       const role = userType === 'student' ? 'student' : 'admin';
       const payload = isLogin
         ? { email, password }
-        : { name: `${firstName} ${lastName}`.trim(), email, password, role };
+        : { 
+            name: `${firstName} ${lastName}`.trim(), 
+            email, 
+            password, 
+            role,
+            ...(userType === 'student' && usn ? { usn } : {}),
+            ...(userType === 'recruiter' && companyName ? { companyName } : {})
+          };
 
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
       const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -228,6 +237,8 @@ const Auth = () => {
                     type="text" 
                     placeholder="University Roll Number" 
                     className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                    value={usn}
+                    onChange={(e) => setUsn(e.target.value)}
                   />
                 </div>
               )}
@@ -239,6 +250,8 @@ const Auth = () => {
                     type="text" 
                     placeholder="Company Name" 
                     className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-10 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
                   />
                 </div>
               )}

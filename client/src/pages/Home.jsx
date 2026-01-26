@@ -178,7 +178,7 @@ const Home = () => {
               { step: 4, title: 'Land Your Dream Job', desc: 'Receive offers and start your journey with your ideal company' }
             ].map((item, index) => (
               <div key={index} className="flex gap-6 md:gap-8 items-start">
-                <div className="flex-shrink-0 w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <div className="shrink-0 w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                   <span className="text-xl font-bold text-white">{item.step}</span>
                 </div>
                 <div className="flex-1 pt-2">

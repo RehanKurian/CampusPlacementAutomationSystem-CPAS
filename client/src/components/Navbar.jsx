@@ -57,6 +57,7 @@ const Navbar = () => {
     { name: 'Create Job', path: '/admin/create-job', icon: Briefcase },
     { name: 'Dashboard', path: '/admin/dashboard', icon: BarChart3 },
     { name: 'Students', path: '/admin/students', icon: User },
+    // Use the same profile route for both roles
     { name: 'Profile', path: '/student/profile', icon: User },
   ];
 
