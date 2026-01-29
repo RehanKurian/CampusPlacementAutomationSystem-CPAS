@@ -24,130 +24,7 @@ const Jobs = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState([]);
-
-  // Mock job data - Replace with API call
-  const mockJobs = [
-    {
-      id: 1,
-      title: 'Software Engineer',
-      company: 'Google',
-      logo: '🔵',
-      location: 'Bangalore, India',
-      salary: '₹15-25 LPA',
-      type: 'Full-time',
-      experience: '0-2 years',
-      postedDate: '2 days ago',
-      description: 'Join our team to build next-generation products that impact billions of users worldwide.',
-      skills: ['JavaScript', 'React', 'Node.js', 'Python'],
-      applicants: 234,
-      isNew: true
-    },
-    {
-      id: 2,
-      title: 'Frontend Developer',
-      company: 'Microsoft',
-      logo: '🟦',
-      location: 'Hyderabad, India',
-      salary: '₹12-18 LPA',
-      type: 'Full-time',
-      experience: '1-3 years',
-      postedDate: '5 days ago',
-      description: 'Build beautiful and responsive user interfaces for our enterprise products.',
-      skills: ['React', 'TypeScript', 'CSS', 'Azure'],
-      applicants: 189,
-      isNew: true
-    },
-    {
-      id: 3,
-      title: 'Full Stack Developer',
-      company: 'Amazon',
-      logo: '🟧',
-      location: 'Mumbai, India',
-      salary: '₹18-28 LPA',
-      type: 'Full-time',
-      experience: '2-4 years',
-      postedDate: '1 week ago',
-      description: 'Work on scalable distributed systems that power millions of transactions.',
-      skills: ['Java', 'AWS', 'React', 'Microservices'],
-      applicants: 312,
-      isNew: false
-    },
-    {
-      id: 4,
-      title: 'Data Scientist',
-      company: 'Netflix',
-      logo: '🔴',
-      location: 'Remote',
-      salary: '₹20-30 LPA',
-      type: 'Full-time',
-      experience: '2-5 years',
-      postedDate: '3 days ago',
-      description: 'Apply machine learning to personalize content for millions of subscribers.',
-      skills: ['Python', 'TensorFlow', 'SQL', 'Spark'],
-      applicants: 156,
-      isNew: true
-    },
-    {
-      id: 5,
-      title: 'Backend Engineer',
-      company: 'Meta',
-      logo: '🔷',
-      location: 'Gurgaon, India',
-      salary: '₹22-32 LPA',
-      type: 'Full-time',
-      experience: '3-5 years',
-      postedDate: '4 days ago',
-      description: 'Build infrastructure that connects billions of people around the world.',
-      skills: ['C++', 'Python', 'GraphQL', 'MySQL'],
-      applicants: 278,
-      isNew: false
-    },
-    {
-      id: 6,
-      title: 'DevOps Engineer',
-      company: 'Adobe',
-      logo: '🟥',
-      location: 'Noida, India',
-      salary: '₹14-22 LPA',
-      type: 'Full-time',
-      experience: '1-3 years',
-      postedDate: '1 week ago',
-      description: 'Automate and streamline development processes for creative tools.',
-      skills: ['Docker', 'Kubernetes', 'Jenkins', 'AWS'],
-      applicants: 98,
-      isNew: false
-    },
-    {
-      id: 7,
-      title: 'Mobile App Developer',
-      company: 'Apple',
-      logo: '🍎',
-      location: 'Bangalore, India',
-      salary: '₹18-26 LPA',
-      type: 'Full-time',
-      experience: '2-4 years',
-      postedDate: '6 days ago',
-      description: 'Create innovative mobile applications for iOS platform.',
-      skills: ['Swift', 'iOS', 'Xcode', 'UIKit'],
-      applicants: 167,
-      isNew: true
-    },
-    {
-      id: 8,
-      title: 'Cloud Architect',
-      company: 'Oracle',
-      logo: '🔶',
-      location: 'Pune, India',
-      salary: '₹25-40 LPA',
-      type: 'Full-time',
-      experience: '5+ years',
-      postedDate: '2 weeks ago',
-      description: 'Design and implement cloud infrastructure solutions for enterprise clients.',
-      skills: ['Oracle Cloud', 'AWS', 'Terraform', 'Security'],
-      applicants: 89,
-      isNew: false
-    }
-  ];
+  const [error, setError] = useState('');
 
   const locations = ['All Locations', 'Bangalore, India', 'Hyderabad, India', 'Mumbai, India', 'Gurgaon, India', 'Noida, India', 'Pune, India', 'Remote'];
   const jobTypes = ['All Types', 'Full-time', 'Part-time', 'Internship', 'Contract'];
@@ -161,12 +38,28 @@ const Jobs = () => {
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      setJobs(mockJobs);
-      setLoading(false);
-    }, 800);
+    // Fetch jobs from API
+    fetchJobs();
   }, [navigate]);
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/jobs');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setJobs(data.jobs || []);
+      } else {
+        setError(data.message || 'Failed to fetch jobs');
+      }
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+      setError('Failed to connect to server');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter jobs based on search and filters
   const filteredJobs = jobs.filter(job => {
@@ -354,7 +247,7 @@ const Jobs = () => {
         {filteredJobs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredJobs.map(job => (
-              <Job key={job.id} job={job} />
+              <Job key={job._id || job.id} job={job} />
             ))}
           </div>
         ) : (

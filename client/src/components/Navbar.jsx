@@ -69,7 +69,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-all duration-300">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-700 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-all duration-300">
               <span className="text-white font-bold text-lg">C</span>
             </div>
             <div>
@@ -118,7 +118,7 @@ const Navbar = () => {
             ) : (
               <>
                 <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/50 rounded-lg border border-slate-700">
-                  <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-sm font-bold">
                     {userName ? userName.charAt(0).toUpperCase() : 'U'}
                   </div>
                   <span className="text-sm text-slate-300 capitalize">{userType}</span>

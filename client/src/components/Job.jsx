@@ -78,20 +78,20 @@ const Job = ({ job }) => {
       {/* Job Details */}
       <div className="space-y-3 mb-4">
         <div className="flex items-center gap-2 text-slate-400">
-          <MapPin size={16} className="text-blue-400 flex-shrink-0" />
+          <MapPin size={16} className="text-blue-400 shrink-0" />
           <span className="text-sm truncate">{location}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-400">
-          <DollarSign size={16} className="text-green-400 flex-shrink-0" />
+          <DollarSign size={16} className="text-green-400 shrink-0" />
           <span className="text-sm">{salary}</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-slate-400">
-            <Briefcase size={16} className="text-purple-400 flex-shrink-0" />
+            <Briefcase size={16} className="text-purple-400 shrink-0" />
             <span className="text-sm">{type}</span>
           </div>
           <div className="flex items-center gap-2 text-slate-400">
-            <TrendingUp size={16} className="text-yellow-400 flex-shrink-0" />
+            <TrendingUp size={16} className="text-yellow-400 shrink-0" />
             <span className="text-sm">{experience}</span>
           </div>
         </div>
@@ -146,7 +146,7 @@ const Job = ({ job }) => {
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-2xl">
         <button
           onClick={handleApply}
-          className="w-full py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
+          className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
         >
           Quick Apply
           <ArrowUpRight size={18} />
