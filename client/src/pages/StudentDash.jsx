@@ -22,24 +22,35 @@ import {
   Activity
 } from 'lucide-react';
 
+// Import the useAuth hook for global state management
+import { useAuth } from '../context/AuthContext';
+
 const StudentDash = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  
+  // ============================================
+  // GET AUTH STATE FROM CONTEXT
+  // ============================================
+  // user: current logged-in user from global state
+  // isAuthenticated: is user logged in?
+  // isStudent: is user a student?
+  const { user, isAuthenticated, isStudent } = useAuth();
+  
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('token');
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    
-    if (!token || !userData?.id) {
+    // ============================================
+    // CHECK AUTH USING CONTEXT
+    // ============================================
+    // If not authenticated, redirect to login
+    if (!isAuthenticated || !user?.id) {
       navigate('/auth');
       return;
     }
     
-    setUser(userData);
+    // User is authenticated, stop loading
     setLoading(false);
-  }, [navigate]);
+  }, [navigate, isAuthenticated, user]);
 
   // Mock data - Replace with real API calls later
   const stats = [

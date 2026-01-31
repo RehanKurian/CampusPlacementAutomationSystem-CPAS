@@ -21,8 +21,19 @@ import {
   Users
 } from 'lucide-react';
 
+// Import the useAuth hook for global state management
+import { useAuth } from '../context/AuthContext';
+
 const MyApplications = () => {
   const navigate = useNavigate();
+  
+  // ============================================
+  // GET AUTH STATE FROM CONTEXT
+  // ============================================
+  // isAuthenticated: boolean to check if user is logged in
+  // We use this instead of checking localStorage directly
+  const { isAuthenticated } = useAuth();
+  
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -137,9 +148,11 @@ const MyApplications = () => {
   };
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('token');
-    if (!token) {
+    // ============================================
+    // CHECK AUTH USING CONTEXT
+    // ============================================
+    // If not authenticated, redirect to login page
+    if (!isAuthenticated) {
       navigate('/auth');
       return;
     }
@@ -149,7 +162,7 @@ const MyApplications = () => {
       setApplications(mockApplications);
       setLoading(false);
     }, 800);
-  }, [navigate]);
+  }, [navigate, isAuthenticated]); // Add isAuthenticated as dependency
 
   // Filter and sort applications
   const filteredApplications = applications
@@ -295,7 +308,7 @@ const MyApplications = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 pr-10 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500 min-w-[160px]"
+                className="pl-10 pr-10 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500 min-w-40"
               >
                 <option value="all" className="bg-slate-800">All Status</option>
                 <option value="pending" className="bg-slate-800">Pending</option>
@@ -312,7 +325,7 @@ const MyApplications = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500 min-w-[150px]"
+                className="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500 min-w-37.5"
               >
                 <option value="newest" className="bg-slate-800">Newest First</option>
                 <option value="oldest" className="bg-slate-800">Oldest First</option>

@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+// Import the useAuth hook to access the login function from context
+import { useAuth } from '../context/AuthContext';
+
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get('mode'); // 'login' or 'signup'
@@ -25,6 +28,12 @@ const Auth = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const navigate = useNavigate();
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  // ============================================
+  // GET LOGIN FUNCTION FROM AUTH CONTEXT
+  // ============================================
+  // This replaces the direct localStorage.setItem() calls
+  const { login } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName]   = useState('');
@@ -49,7 +58,7 @@ const Auth = () => {
     setError('');
     setLoading(true);
     try {
-      const role = userType === 'student' ? 'student' : 'admin';
+      const role = userType === 'student' ? 'student' : 'recruiter';
       const payload = isLogin
         ? { email, password }
         : { 
@@ -71,10 +80,16 @@ const Auth = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Request failed');
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));//to store user details in local storage 
+      // ============================================
+      // USE CONTEXT LOGIN INSTEAD OF localStorage
+      // ============================================
+      // Call the login function from AuthContext
+      // This updates BOTH the global React state AND localStorage
+      // All components using useAuth() will automatically re-render
+      login(data.user, data.token);
 
-      if (data.user.role === 'admin') navigate('/admin/dashboard');
+      // Navigate based on user role
+      if (data.user.role === 'recruiter') navigate('/admin/dashboard');
       else navigate('/student/dashboard');
     } catch (err) {
       setError(err.message);

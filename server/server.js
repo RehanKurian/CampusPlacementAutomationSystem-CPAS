@@ -47,7 +47,7 @@ app.post('/api/auth/register', async (req, res) => {
 		if (role === 'student' && req.body.usn) {
 			userData.studentProfile = { usn: req.body.usn };
 		}
-		if (role === 'admin' && req.body.companyName) {
+		if (role === 'recruiter' && req.body.companyName) {
 			userData.recruiterProfile = { companyName: req.body.companyName };
 		}
 
@@ -244,8 +244,8 @@ const authenticateToken = (req, res, next) => {
 // GET: Get all students (For recruiters to browse)
 app.get('/api/students', authenticateToken, async (req, res) => {
     try {
-        // Check if user is a recruiter (admin)
-        if (req.user.role !== 'admin') {
+        // Check if user is a recruiter
+        if (req.user.role !== 'recruiter') {
             return res.status(403).json({ message: 'Only recruiters can view student list' });
         }
 
@@ -273,7 +273,7 @@ app.get('/api/students', authenticateToken, async (req, res) => {
 // GET: Get a single student by ID (For recruiters)
 app.get('/api/students/:id', authenticateToken, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
+        if (req.user.role !== 'recruiter') {
             return res.status(403).json({ message: 'Only recruiters can view student details' });
         }
 
@@ -304,8 +304,8 @@ app.get('/api/students/:id', authenticateToken, async (req, res) => {
 // CREATE: Post a new job (Recruiter only)
 app.post('/api/jobs', authenticateToken, async (req, res) => {
     try {
-        // Check if user is a recruiter (admin)
-        if (req.user.role !== 'admin') {
+        // Check if user is a recruiter
+        if (req.user.role !== 'recruiter') {
             return res.status(403).json({ message: 'Only recruiters can post jobs' });
         }
 

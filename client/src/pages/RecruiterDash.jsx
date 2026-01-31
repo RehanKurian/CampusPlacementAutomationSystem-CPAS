@@ -26,40 +26,50 @@ import {
   Award
 } from 'lucide-react';
 
-const AdminDash = () => {
+// Import the useAuth hook for global state management
+import { useAuth } from '../context/AuthContext';
+
+const RecruiterDash = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  
+  // ============================================
+  // GET AUTH STATE FROM CONTEXT
+  // ============================================
+  // Replaces: localStorage.getItem('token') and localStorage.getItem('user')
+  const { user, token, isAuthenticated, isRecruiter } = useAuth();
+  
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(true);
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('token');
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-
-    if (!token || !userData?.id) {
+    // ============================================
+    // CHECK AUTH USING CONTEXT
+    // ============================================
+    // If not authenticated, redirect to login
+    if (!isAuthenticated || !user?.id) {
       navigate('/auth');
       return;
     }
 
-    if (userData.role !== 'admin') {
+    // If user is not a recruiter (admin), redirect to student dashboard
+    if (!isRecruiter) {
       navigate('/student/dashboard');
       return;
     }
 
-    setUser(userData);
+    // User is authenticated and is a recruiter, proceed
     setLoading(false);
 
-    // Fetch jobs posted by this recruiter
-    fetchRecruiterJobs(userData.id, token);
-  }, [navigate]);
+    // Fetch jobs posted by this recruiter using token from context
+    fetchRecruiterJobs(user.id, token);
+  }, [navigate, isAuthenticated, user, token, isRecruiter]);
 
-  const fetchRecruiterJobs = async (recruiterId, token) => {
+  const fetchRecruiterJobs = async (recruiterId, authToken) => {
     try {
       const response = await fetch(`http://localhost:5000/api/jobs/recruiter/${recruiterId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${authToken}`  // Use token passed as parameter
         }
       });
       const data = await response.json();
@@ -77,11 +87,10 @@ const AdminDash = () => {
     if (!window.confirm('Are you sure you want to delete this job?')) return;
     
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/jobs/${jobId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`  // Use token from context
         }
       });
       
@@ -226,7 +235,7 @@ const AdminDash = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-slate-400">Loading dashboard...</p>
@@ -236,13 +245,13 @@ const AdminDash = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-8 px-4 md:px-8">
+    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 py-8 px-4 md:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <div className="p-2 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg">
                 <BarChart3 className="text-white" size={24} />
               </div>
               <h1 className="text-3xl md:text-4xl font-bold text-white">Recruiter Dashboard</h1>
@@ -256,7 +265,7 @@ const AdminDash = () => {
           </div>
           <Link
             to="/admin/create-job"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
           >
             <Plus size={20} />
             Post New Job
@@ -270,11 +279,11 @@ const AdminDash = () => {
             return (
               <div
                 key={index}
-                className="group relative bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all duration-300 overflow-hidden"
+                className="group relative bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all duration-300 overflow-hidden"
               >
-                <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.color} opacity-10 rounded-full blur-2xl transform translate-x-8 -translate-y-8`}></div>
+                <div className={`absolute top-0 right-0 w-24 h-24 bg-linear-to-br ${stat.color} opacity-10 rounded-full blur-2xl transform translate-x-8 -translate-y-8`}></div>
                 <div className="relative">
-                  <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center mb-4`}>
+                  <div className={`w-12 h-12 bg-linear-to-br ${stat.color} rounded-xl flex items-center justify-center mb-4`}>
                     <Icon className="text-white" size={24} />
                   </div>
                   <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
@@ -474,7 +483,7 @@ const AdminDash = () => {
               <div className="space-y-3">
                 <Link
                   to="/admin/create-job"
-                  className="flex items-center gap-3 w-full p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl hover:bg-blue-500/20 transition-colors group"
+                  className="flex items-center gap-3 w-full p-4 bg-linear-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl hover:bg-blue-500/20 transition-colors group"
                 >
                   <div className="p-2 bg-blue-500/20 rounded-lg">
                     <Plus className="text-blue-400" size={20} />
@@ -559,7 +568,7 @@ const AdminDash = () => {
                     <span className="text-white font-medium">78%</span>
                   </div>
                   <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full" style={{ width: '78%' }}></div>
+                    <div className="h-full bg-linear-to-r from-blue-500 to-cyan-500 rounded-full" style={{ width: '78%' }}></div>
                   </div>
                 </div>
 
@@ -569,7 +578,7 @@ const AdminDash = () => {
                     <span className="text-white font-medium">45%</span>
                   </div>
                   <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style={{ width: '45%' }}></div>
+                    <div className="h-full bg-linear-to-r from-purple-500 to-pink-500 rounded-full" style={{ width: '45%' }}></div>
                   </div>
                 </div>
 
@@ -579,7 +588,7 @@ const AdminDash = () => {
                     <span className="text-white font-medium">92%</span>
                   </div>
                   <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full" style={{ width: '92%' }}></div>
+                    <div className="h-full bg-linear-to-r from-green-500 to-emerald-500 rounded-full" style={{ width: '92%' }}></div>
                   </div>
                 </div>
               </div>
@@ -591,4 +600,4 @@ const AdminDash = () => {
   );
 };
 
-export default AdminDash;
+export default RecruiterDash;

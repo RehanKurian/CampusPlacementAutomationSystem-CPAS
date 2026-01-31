@@ -1,44 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, LogOut, User, Briefcase, BarChart3 } from 'lucide-react';
 
+// Import the useAuth hook to access global auth state
+// This replaces the old localStorage-based approach
+import { useAuth } from '../context/AuthContext';
+
 const Navbar = () => {
+  // State for mobile menu toggle only
   const [isOpen, setIsOpen] = useState(false);
+  
+  // React Router hooks
   const location = useLocation();
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userType, setUserType] = useState('student'); // 'student' or 'recruiter'
-  const [userName, setUserName] = useState('');
+  
+  // ============================================
+  // USE AUTH CONTEXT instead of localStorage
+  // ============================================
+  // Destructure all the auth state and functions we need from context
+  // This automatically updates when auth state changes (login/logout)
+  const { 
+    user,           // The current user object (null if not logged in)
+    isAuthenticated, // Boolean: is user logged in?
+    isStudent,      // Boolean: is user a student?
+    isRecruiter,    // Boolean: is user a recruiter/admin?
+    logout: contextLogout  // The logout function from context (renamed to avoid confusion)
+  } = useAuth();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (token && user?.role) {
-        setIsLoggedIn(true);
-        setUserType(user.role === 'admin' ? 'recruiter' : 'student');
-        setUserName(user.name || '');
-      } else {
-        setIsLoggedIn(false);
-        setUserName('');
-      }
-    };
+  // Derive the user type string for display purposes
+  // If user exists, check their role; otherwise default to empty string
+  const userType = user?.role === 'recruiter' ? 'recruiter' : 'student';
+  
+  // Get username from user object, or empty string if not logged in
+  const userName = user?.name || '';
 
-    checkAuth();
-
-    // Listen for storage changes (in case of logout in another tab)
-    window.addEventListener('storage', checkAuth);
-    
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-    };
-  }, [location.pathname]);
-
+  // ============================================
+  // LOGOUT HANDLER
+  // ============================================
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
+    // Call the context logout function (clears both state and localStorage)
+    contextLogout();
+    // Close mobile menu if open
     setIsOpen(false);
+    // Redirect to home page
     navigate('/');
   };
 
@@ -69,7 +73,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-700 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-all duration-300">
+            <div className="w-10 h-10 rounded-lg bg-linear-to-r from-emerald-500 to-emerald-700 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-all duration-300">
               <span className="text-white font-bold text-lg">C</span>
             </div>
             <div>
@@ -79,7 +83,8 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {isLoggedIn && links.map((link) => {
+            {/* Only show navigation links if user is authenticated */}
+            {isAuthenticated && links.map((link) => {
               const Icon = link.icon;
               return (
                 <Link
@@ -100,7 +105,8 @@ const Navbar = () => {
 
           {/* Right Side - Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            {!isLoggedIn ? (
+            {/* Show login/signup buttons if NOT authenticated */}
+            {!isAuthenticated ? (
               <>
                 <Link
                   to="/auth?mode=login"
@@ -118,7 +124,7 @@ const Navbar = () => {
             ) : (
               <>
                 <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/50 rounded-lg border border-slate-700">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-sm font-bold">
+                  <div className="w-8 h-8 rounded-full bg-linear-to-r from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-sm font-bold">
                     {userName ? userName.charAt(0).toUpperCase() : 'U'}
                   </div>
                   <span className="text-sm text-slate-300 capitalize">{userType}</span>
@@ -147,7 +153,8 @@ const Navbar = () => {
         {isOpen && (
           <div className="md:hidden border-t border-slate-800 py-4 animate-in fade-in slide-in-from-top-2">
             <div className="space-y-2 mb-4">
-              {isLoggedIn && links.map((link) => {
+              {/* Only show navigation links if user is authenticated */}
+              {isAuthenticated && links.map((link) => {
                 const Icon = link.icon;
                 return (
                   <Link
@@ -169,7 +176,8 @@ const Navbar = () => {
 
             {/* Mobile Auth Buttons */}
             <div className="border-t border-slate-800 pt-4 space-y-2">
-              {!isLoggedIn ? (
+              {/* Show login/signup buttons if NOT authenticated */}
+              {!isAuthenticated ? (
                 <>
                   <Link
                     to="/auth?mode=login"

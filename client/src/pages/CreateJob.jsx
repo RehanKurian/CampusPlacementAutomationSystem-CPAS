@@ -17,9 +17,21 @@ import {
   TrendingUp
 } from 'lucide-react';
 
+// Import the useAuth hook for global state management
+import { useAuth } from '../context/AuthContext';
+
 const CreateJob = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  
+  // ============================================
+  // GET AUTH STATE FROM CONTEXT
+  // ============================================
+  // user: current logged-in user
+  // token: JWT token for API calls
+  // isAuthenticated: is user logged in?
+  // isRecruiter: is user a recruiter/admin?
+  const { user, token, isAuthenticated, isRecruiter } = useAuth();
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -42,28 +54,29 @@ const CreateJob = () => {
   const logoOptions = ['🏢', '🔵', '🟦', '🟧', '🔴', '🔷', '🟥', '🍎', '🔶', '💼', '🌐', '⚡'];
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-
-    if (!token || !userData?.id) {
+    // ============================================
+    // CHECK AUTH USING CONTEXT
+    // ============================================
+    // If not authenticated, redirect to login
+    if (!isAuthenticated || !user?.id) {
       navigate('/auth');
       return;
     }
 
-    if (userData.role !== 'admin') {
+    // If not a recruiter, redirect to student dashboard
+    if (!isRecruiter) {
       navigate('/student/dashboard');
       return;
     }
 
-    setUser(userData);
-    // Pre-fill company name from recruiter profile
-    if (userData.recruiterProfile?.companyName) {
+    // Pre-fill company name from recruiter profile if available
+    if (user.recruiterProfile?.companyName) {
       setFormData(prev => ({
         ...prev,
-        company: userData.recruiterProfile.companyName
+        company: user.recruiterProfile.companyName
       }));
     }
-  }, [navigate]);
+  }, [navigate, isAuthenticated, user, isRecruiter]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -115,16 +128,18 @@ const CreateJob = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      // ============================================
+      // USE TOKEN FROM CONTEXT FOR API CALL
+      // ============================================
       const response = await fetch('http://localhost:5000/api/jobs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`  // Use token from context
         },
         body: JSON.stringify({
           ...formData,
-          postedBy: user.id
+          postedBy: user.id  // Use user from context
         })
       });
 
@@ -147,7 +162,7 @@ const CreateJob = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center px-4">
         <div className="text-center">
           <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30">
             <CheckCircle className="text-green-400" size={40} />
@@ -161,7 +176,7 @@ const CreateJob = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-8 px-4 md:px-8">
+    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 py-8 px-4 md:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -173,7 +188,7 @@ const CreateJob = () => {
             <span>Back</span>
           </button>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+            <div className="p-2 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg">
               <Plus className="text-white" size={24} />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white">Post a New Job</h1>
@@ -184,7 +199,7 @@ const CreateJob = () => {
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
-            <AlertCircle className="text-red-400 flex-shrink-0" size={20} />
+            <AlertCircle className="text-red-400 shrink-0" size={20} />
             <p className="text-red-300">{error}</p>
           </div>
         )}
@@ -474,7 +489,7 @@ const CreateJob = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-4 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>

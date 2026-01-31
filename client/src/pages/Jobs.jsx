@@ -15,8 +15,18 @@ import {
 } from 'lucide-react';
 import Job from '../components/Job';
 
+// Import the useAuth hook for global state management
+import { useAuth } from '../context/AuthContext';
+
 const Jobs = () => {
   const navigate = useNavigate();
+  
+  // ============================================
+  // GET AUTH STATE FROM CONTEXT
+  // ============================================
+  // isAuthenticated: boolean to check if user is logged in
+  const { isAuthenticated } = useAuth();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedJobType, setSelectedJobType] = useState('');
@@ -31,16 +41,18 @@ const Jobs = () => {
   const experienceLevels = ['All Experience', '0-2 years', '1-3 years', '2-4 years', '3-5 years', '5+ years'];
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('token');
-    if (!token) {
+    // ============================================
+    // CHECK AUTH USING CONTEXT
+    // ============================================
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
       navigate('/auth');
       return;
     }
 
     // Fetch jobs from API
     fetchJobs();
-  }, [navigate]);
+  }, [navigate, isAuthenticated]); // Add isAuthenticated as dependency
 
   const fetchJobs = async () => {
     try {
@@ -85,7 +97,7 @@ const Jobs = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-slate-400">Loading jobs...</p>
@@ -95,7 +107,7 @@ const Jobs = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-8 px-4 md:px-8">
+    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 py-8 px-4 md:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="mb-8">

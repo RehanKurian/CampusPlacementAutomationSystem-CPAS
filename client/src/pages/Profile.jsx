@@ -3,26 +3,45 @@ import { useNavigate } from 'react-router-dom';
 import StudentProfile from '../components/StudentProfile';
 import RecruiterProfile from '../components/RecruiterProfile';
 
+// Import the useAuth hook for global state management
+import { useAuth } from '../context/AuthContext';
+
 const Profile = () => {
+  // ============================================
+  // GET AUTH STATE FROM CONTEXT
+  // ============================================
+  // user: the current logged-in user from global state
+  // token: the JWT token for API calls
+  // isAuthenticated: boolean to check if user is logged in
+  // updateUser: function to update user data globally after profile changes
+  const { 
+    user: authUser,       // Rename to authUser to avoid confusion with local state
+    token, 
+    isAuthenticated, 
+    updateUser            // This will update the context + localStorage when profile changes
+  } = useAuth();
+
+  // Local state for potentially fetched fresh data
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const token = localStorage.getItem('token');
-      const stored = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      if (!token || !stored?.id) {
+      // ============================================
+      // CHECK AUTH USING CONTEXT
+      // ============================================
+      // If not authenticated, redirect to auth page
+      if (!isAuthenticated || !authUser?.id) {
         navigate('/auth');
         return;
       }
 
       try {
-        // Fetch fresh user data from server
-        const response = await fetch(`http://localhost:5000/api/user/${stored.id}`, {
+        // Fetch fresh user data from server using token from context
+        const response = await fetch(`http://localhost:5000/api/user/${authUser.id}`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`,  // Use token from context
           },
         });
 
@@ -30,19 +49,20 @@ const Profile = () => {
           const data = await response.json();
           setUser(data.user);
         } else {
-          // Fallback to stored data if fetch fails
-          setUser(stored);
+          // Fallback to context user data if fetch fails
+          setUser(authUser);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
-        setUser(stored);
+        // Use context user data as fallback
+        setUser(authUser);
       } finally {
         setLoading(false);
       }
     };
 
     fetchUserData();
-  }, [navigate]);
+  }, [navigate, isAuthenticated, authUser, token]); // Add context values as dependencies
 
   if (loading) {
     return (
@@ -63,9 +83,14 @@ const Profile = () => {
   const role = user.role;
   const isStudent = role === 'student';
 
+  // ============================================
+  // UPDATE HANDLER USING CONTEXT
+  // ============================================
   // Callback to update user state after profile changes
+  // This now updates BOTH local state AND global context
   const handleUserUpdate = (updatedUser) => {
-    setUser(updatedUser);
+    setUser(updatedUser);      // Update local state for immediate UI update
+    updateUser(updatedUser);    // Update global context + localStorage
   };
 
   return (

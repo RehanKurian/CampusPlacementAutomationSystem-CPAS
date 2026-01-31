@@ -1,5 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+// Import the AuthProvider to wrap our entire app
+// This makes auth state (user, token, login, logout) available everywhere
+import { AuthProvider } from './context/AuthContext';
+
 // Import Components
 import Navbar from './components/Navbar';
 
@@ -13,17 +17,20 @@ import Profile from './pages/Profile';
 import MyApplications from './pages/MyApplications';
 
 // Admin Pages
-import AdminDash from './pages/AdminDash';
+import RecruiterDash from './pages/RecruiterDash';
 import CreateJob from './pages/CreateJob';
 import AllStudents from './pages/Students';
 
 function App() {
   return (
+    // AuthProvider wraps EVERYTHING so all components can access auth state
+    // It must be inside BrowserRouter if we want to use navigation in auth functions
     <BrowserRouter>
-      {/* Navbar is outside Routes so it shows on EVERY page */}
-      <Navbar /> 
-      
-      <Routes>
+      <AuthProvider>
+        {/* Navbar is outside Routes so it shows on EVERY page */}
+        <Navbar /> 
+        
+        <Routes>
         {/* PUBLIC ROUTES (Anyone can see) */}
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<Auth />} />
@@ -36,12 +43,13 @@ function App() {
         <Route path="/student/applications" element={<MyApplications />} />
 
         {/* ADMIN ROUTES */}
-        <Route path="/admin/dashboard" element={<AdminDash />} />
+        <Route path="/admin/dashboard" element={<RecruiterDash />} />
         <Route path="/admin/create-job" element={<CreateJob />} />
         <Route path="/admin/students" element={<AllStudents />} />
 
       
-      </Routes>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

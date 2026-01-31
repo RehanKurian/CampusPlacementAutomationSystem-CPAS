@@ -1,29 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Users,
-  Search,
-  Filter,
-  GraduationCap,
-  Mail,
-  Phone,
-  MapPin,
-  Briefcase,
-  Award,
-  FileText,
-  ChevronDown,
-  X,
-  Eye,
-  ExternalLink,
-  Star,
-  TrendingUp,
-  BookOpen,
-  Code,
-  SlidersHorizontal
+import {Users, Search,Filter,GraduationCap,Mail,Phone,MapPin,Briefcase,Award,FileText,ChevronDown,X,Eye,ExternalLink,Star,TrendingUp,BookOpen,Code,SlidersHorizontal
 } from 'lucide-react';
+
+// Import the useAuth hook for global state management
+import { useAuth } from '../context/AuthContext';
 
 const Students = () => {
   const navigate = useNavigate();
+  
+  // ============================================
+  // GET AUTH STATE FROM CONTEXT
+  // ============================================
+  // token: JWT token for API calls
+  // isAuthenticated: is user logged in?
+  // isRecruiter: is user a recruiter/admin?
+  // user: current user object
+  const { token, isAuthenticated, isRecruiter, user } = useAuth();
+  
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,30 +32,34 @@ const Students = () => {
   const popularSkills = ['React', 'Node.js', 'Python', 'Java', 'JavaScript', 'SQL', 'AWS', 'MongoDB'];
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('token');
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-
-    if (!token || !userData?.id) {
+    // ============================================
+    // CHECK AUTH USING CONTEXT
+    // ============================================
+    // If not authenticated, redirect to login
+    if (!isAuthenticated || !user?.id) {
       navigate('/auth');
       return;
     }
 
-    if (userData.role !== 'admin') {
+    // If not a recruiter, redirect to student dashboard
+    if (!isRecruiter) {
       navigate('/student/dashboard');
       return;
     }
 
+    // User is authenticated and is a recruiter, fetch students
     fetchStudents();
-  }, [navigate]);
+  }, [navigate, isAuthenticated, isRecruiter, user]);
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      // ============================================
+      // USE TOKEN FROM CONTEXT FOR API CALL
+      // ============================================
       const response = await fetch('http://localhost:5000/api/students', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`  // Use token from context
         }
       });
       const data = await response.json();
@@ -118,7 +116,7 @@ const Students = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-slate-400">Loading students...</p>
@@ -128,7 +126,7 @@ const Students = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-8 px-4 md:px-8">
+    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 py-8 px-4 md:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="mb-8">
@@ -334,11 +332,11 @@ const Students = () => {
               return (
                 <div
                   key={student._id}
-                  className="group bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5"
+                  className="group bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5"
                 >
                   {/* Student Header */}
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0">
+                    <div className="w-14 h-14 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0">
                       {student.name?.charAt(0)?.toUpperCase() || 'S'}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -354,19 +352,19 @@ const Students = () => {
                   <div className="space-y-3 mb-4">
                     {profile.branch && (
                       <div className="flex items-center gap-2 text-slate-400">
-                        <GraduationCap size={16} className="text-blue-400 flex-shrink-0" />
+                        <GraduationCap size={16} className="text-blue-400 shrink-0" />
                         <span className="text-sm">{profile.branch}</span>
                       </div>
                     )}
                     {profile.cgpa > 0 && (
                       <div className="flex items-center gap-2 text-slate-400">
-                        <Award size={16} className="text-green-400 flex-shrink-0" />
+                        <Award size={16} className="text-green-400 shrink-0" />
                         <span className="text-sm">CGPA: {profile.cgpa}</span>
                       </div>
                     )}
                     {student.phoneNumber && (
                       <div className="flex items-center gap-2 text-slate-400">
-                        <Phone size={16} className="text-purple-400 flex-shrink-0" />
+                        <Phone size={16} className="text-purple-400 shrink-0" />
                         <span className="text-sm">{student.phoneNumber}</span>
                       </div>
                     )}
@@ -463,7 +461,7 @@ const Students = () => {
                 {/* Modal Header */}
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-2xl font-bold text-white">
+                    <div className="w-16 h-16 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-2xl font-bold text-white">
                       {selectedStudent.name?.charAt(0)?.toUpperCase() || 'S'}
                     </div>
                     <div>
@@ -605,7 +603,7 @@ const Students = () => {
                       href={selectedStudent.studentProfile.resume}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all"
+                      className="flex items-center justify-center gap-2 w-full py-3 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all"
                     >
                       <FileText size={20} />
                       View Resume
