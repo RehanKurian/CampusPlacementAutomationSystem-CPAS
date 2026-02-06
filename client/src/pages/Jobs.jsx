@@ -25,7 +25,7 @@ const Jobs = () => {
   // GET AUTH STATE FROM CONTEXT
   // ============================================
   // isAuthenticated: boolean to check if user is logged in
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
@@ -44,6 +44,9 @@ const Jobs = () => {
     // ============================================
     // CHECK AUTH USING CONTEXT
     // ============================================
+    // Wait for auth to finish loading from localStorage
+    if (authLoading) return;
+
     // If not authenticated, redirect to login
     if (!isAuthenticated) {
       navigate('/auth');
@@ -52,7 +55,7 @@ const Jobs = () => {
 
     // Fetch jobs from API
     fetchJobs();
-  }, [navigate, isAuthenticated]); // Add isAuthenticated as dependency
+  }, [navigate, isAuthenticated, authLoading]); // Add authLoading as dependency
 
   const fetchJobs = async () => {
     try {

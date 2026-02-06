@@ -18,7 +18,9 @@ import {
   ExternalLink,
   Briefcase,
   TrendingUp,
-  Users
+  Users,
+  MessageSquare,
+  Loader2
 } from 'lucide-react';
 
 // Import the useAuth hook for global state management
@@ -30,85 +32,19 @@ const MyApplications = () => {
   // ============================================
   // GET AUTH STATE FROM CONTEXT
   // ============================================
-  // isAuthenticated: boolean to check if user is logged in
-  // We use this instead of checking localStorage directly
-  const { isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated, loading: authLoading } = useAuth();
   
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [withdrawing, setWithdrawing] = useState(null); // Track which application is being withdrawn
 
-  // Mock application data - Replace with API call
-  const mockApplications = [
-    {
-      id: 1,
-      jobId: 1,
-      title: 'Software Engineer',
-      company: 'Google',
-      logo: '🔵',
-      location: 'Bangalore, India',
-      salary: '₹15-25 LPA',
-      type: 'Full-time',
-      appliedDate: '2026-01-24',
-      status: 'shortlisted',
-      statusMessage: 'Interview scheduled for Jan 30'
-    },
-    {
-      id: 2,
-      jobId: 2,
-      title: 'Frontend Developer',
-      company: 'Microsoft',
-      logo: '🟦',
-      location: 'Hyderabad, India',
-      salary: '₹12-18 LPA',
-      type: 'Full-time',
-      appliedDate: '2026-01-21',
-      status: 'in-review',
-      statusMessage: 'Application under review'
-    },
-    {
-      id: 3,
-      jobId: 3,
-      title: 'Full Stack Developer',
-      company: 'Amazon',
-      logo: '🟧',
-      location: 'Mumbai, India',
-      salary: '₹18-28 LPA',
-      type: 'Full-time',
-      appliedDate: '2026-01-19',
-      status: 'pending',
-      statusMessage: 'Waiting for response'
-    },
-    {
-      id: 4,
-      jobId: 4,
-      title: 'Data Scientist',
-      company: 'Netflix',
-      logo: '🔴',
-      location: 'Remote',
-      salary: '₹20-30 LPA',
-      type: 'Full-time',
-      appliedDate: '2026-01-15',
-      status: 'rejected',
-      statusMessage: 'Position filled'
-    },
-    {
-      id: 5,
-      jobId: 5,
-      title: 'Backend Engineer',
-      company: 'Meta',
-      logo: '🔷',
-      location: 'Gurgaon, India',
-      salary: '₹22-32 LPA',
-      type: 'Full-time',
-      appliedDate: '2026-01-10',
-      status: 'accepted',
-      statusMessage: 'Offer extended! Check email'
-    }
-  ];
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+  // Status configuration for styling
   const statusConfig = {
     pending: {
       label: 'Pending',
@@ -131,6 +67,13 @@ const MyApplications = () => {
       bg: 'bg-purple-500/10',
       border: 'border-purple-500/30'
     },
+    interview: {
+      label: 'Interview',
+      icon: MessageSquare,
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-500/10',
+      border: 'border-cyan-500/30'
+    },
     accepted: {
       label: 'Accepted',
       icon: CheckCircle,
@@ -147,22 +90,77 @@ const MyApplications = () => {
     }
   };
 
+  // ============================================
+  // FETCH APPLICATIONS FROM API
+  // ============================================
   useEffect(() => {
-    // ============================================
-    // CHECK AUTH USING CONTEXT
-    // ============================================
-    // If not authenticated, redirect to login page
+    // Wait for auth to finish loading from localStorage
+    if (authLoading) return;
+
     if (!isAuthenticated) {
       navigate('/auth');
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      setApplications(mockApplications);
+    fetchApplications();
+  }, [navigate, isAuthenticated, user, token, authLoading]);
+
+  const fetchApplications = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await fetch(`${API_BASE}/api/applications/student/${user.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setApplications(data.applications || []);
+      } else {
+        setError(data.message || 'Failed to fetch applications');
+      }
+    } catch (err) {
+      console.error('Error fetching applications:', err);
+      setError('Failed to connect to server');
+    } finally {
       setLoading(false);
-    }, 800);
-  }, [navigate, isAuthenticated]); // Add isAuthenticated as dependency
+    }
+  };
+
+  // ============================================
+  // WITHDRAW APPLICATION
+  // ============================================
+  const handleWithdraw = async (applicationId) => {
+    if (!window.confirm('Are you sure you want to withdraw this application?')) return;
+
+    setWithdrawing(applicationId);
+    try {
+      const response = await fetch(`${API_BASE}/api/applications/${applicationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Remove from local state
+        setApplications(prev => prev.filter(app => app._id !== applicationId));
+      } else {
+        alert(data.message || 'Failed to withdraw application');
+      }
+    } catch (err) {
+      console.error('Error withdrawing application:', err);
+      alert('Failed to withdraw application. Please try again.');
+    } finally {
+      setWithdrawing(null);
+    }
+  };
 
   // Filter and sort applications
   const filteredApplications = applications
@@ -183,12 +181,13 @@ const MyApplications = () => {
       return 0;
     });
 
-  // Calculate stats
+  // Calculate stats from real data
   const stats = {
     total: applications.length,
     pending: applications.filter(a => a.status === 'pending').length,
     inReview: applications.filter(a => a.status === 'in-review').length,
     shortlisted: applications.filter(a => a.status === 'shortlisted').length,
+    interview: applications.filter(a => a.status === 'interview').length,
     accepted: applications.filter(a => a.status === 'accepted').length,
     rejected: applications.filter(a => a.status === 'rejected').length
   };
@@ -207,13 +206,6 @@ const MyApplications = () => {
 
   const handleViewJob = (jobId) => {
     navigate(`/student/jobs/${jobId}`);
-  };
-
-  const handleWithdraw = (applicationId) => {
-    // Handle withdraw logic
-    if (window.confirm('Are you sure you want to withdraw this application?')) {
-      setApplications(prev => prev.filter(app => app.id !== applicationId));
-    }
   };
 
   if (loading) {
@@ -314,6 +306,7 @@ const MyApplications = () => {
                 <option value="pending" className="bg-slate-800">Pending</option>
                 <option value="in-review" className="bg-slate-800">In Review</option>
                 <option value="shortlisted" className="bg-slate-800">Shortlisted</option>
+                <option value="interview" className="bg-slate-800">Interview</option>
                 <option value="accepted" className="bg-slate-800">Accepted</option>
                 <option value="rejected" className="bg-slate-800">Rejected</option>
               </select>
@@ -347,19 +340,19 @@ const MyApplications = () => {
         {filteredApplications.length > 0 ? (
           <div className="space-y-4">
             {filteredApplications.map((application) => {
-              const status = statusConfig[application.status];
+              const status = statusConfig[application.status] || statusConfig.pending;
               const StatusIcon = status.icon;
 
               return (
                 <div
-                  key={application.id}
+                  key={application._id}
                   className="group bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all duration-300"
                 >
                   <div className="flex flex-col md:flex-row md:items-center gap-4">
                     {/* Company Logo and Job Info */}
                     <div className="flex items-start gap-4 flex-1">
                       <div className="w-14 h-14 bg-slate-700/50 rounded-xl flex items-center justify-center text-3xl border border-slate-600">
-                        {application.logo}
+                        {application.logo || '🏢'}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-semibold text-white mb-1">
@@ -423,11 +416,21 @@ const MyApplications = () => {
                     </button>
                     {application.status !== 'accepted' && application.status !== 'rejected' && (
                       <button
-                        onClick={() => handleWithdraw(application.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-300 rounded-lg border border-red-500/30 hover:bg-red-500/20 transition-colors text-sm"
+                        onClick={() => handleWithdraw(application._id)}
+                        disabled={withdrawing === application._id}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-300 rounded-lg border border-red-500/30 hover:bg-red-500/20 transition-colors text-sm disabled:opacity-50"
                       >
-                        <Trash2 size={16} />
-                        Withdraw
+                        {withdrawing === application._id ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Withdrawing...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 size={16} />
+                            Withdraw
+                          </>
+                        )}
                       </button>
                     )}
                     {application.status === 'accepted' && (

@@ -16,6 +16,7 @@ const Job = ({ job }) => {
   const navigate = useNavigate();
 
   const {
+    _id,
     id,
     title,
     company,
@@ -28,17 +29,21 @@ const Job = ({ job }) => {
     description,
     skills = [],
     applicants,
+    applicantCount,
     isNew
   } = job;
 
+  // Use _id from MongoDB, fallback to id for backward compatibility
+  const jobId = _id || id;
+
   const handleViewDetails = () => {
-    navigate(`/student/jobs/${id}`);
+    navigate(`/student/jobs/${jobId}`);
   };
 
   const handleApply = (e) => {
     e.stopPropagation();
-    // Handle apply logic - can be expanded later
-    console.log('Applying to job:', id);
+    // Navigate to job details page where they can apply
+    navigate(`/student/jobs/${jobId}`);
   };
 
   const handleSave = (e) => {
@@ -50,7 +55,7 @@ const Job = ({ job }) => {
   return (
     <div 
       onClick={handleViewDetails}
-      className="group relative bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer"
+      className="group relative bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer"
     >
       {/* New Badge */}
       {isNew && (
@@ -128,7 +133,7 @@ const Job = ({ job }) => {
           </div>
           <div className="flex items-center gap-1">
             <Users size={14} />
-            <span>{applicants} applied</span>
+            <span>{applicantCount || applicants?.length || 0} applied</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -143,10 +148,10 @@ const Job = ({ job }) => {
       </div>
 
       {/* Apply Button - Shows on Hover */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-2xl">
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-slate-900 via-slate-900/95 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-2xl">
         <button
           onClick={handleApply}
-          className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
+          className="w-full py-2.5 bg-linear-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
         >
           Quick Apply
           <ArrowUpRight size={18} />

@@ -13,13 +13,15 @@ import Auth from './pages/Auth';
 
 import StudentDash from './pages/StudentDash';
 import Jobs from './pages/Jobs';
+import JobDetails from './pages/JobDetails';
 import Profile from './pages/Profile';
 import MyApplications from './pages/MyApplications';
 
-// Admin Pages
+// Admin/Recruiter Pages
 import RecruiterDash from './pages/RecruiterDash';
 import CreateJob from './pages/CreateJob';
 import AllStudents from './pages/Students';
+import JobApplicants from './pages/JobApplicants';
 
 function App() {
   return (
@@ -39,13 +41,15 @@ function App() {
         {/* Later we will protect these so only Students can enter */}
         <Route path="/student/dashboard" element={<StudentDash />} />
         <Route path="/student/jobs" element={<Jobs />} />
+        <Route path="/student/jobs/:id" element={<JobDetails />} />
         <Route path="/student/profile" element={<Profile />} />
         <Route path="/student/applications" element={<MyApplications />} />
 
-        {/* ADMIN ROUTES */}
+        {/* ADMIN/RECRUITER ROUTES */}
         <Route path="/admin/dashboard" element={<RecruiterDash />} />
         <Route path="/admin/create-job" element={<CreateJob />} />
         <Route path="/admin/students" element={<AllStudents />} />
+        <Route path="/admin/jobs/:id/applicants" element={<JobApplicants />} />
 
       
         </Routes>

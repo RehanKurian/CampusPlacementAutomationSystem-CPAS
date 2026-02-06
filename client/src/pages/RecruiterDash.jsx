@@ -388,10 +388,13 @@ const RecruiterDash = () => {
                     </div>
 
                     <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-700">
-                      <button className="flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 text-blue-300 rounded-lg text-sm hover:bg-blue-500/20 transition-colors">
+                      <Link 
+                        to={`/admin/jobs/${job._id}/applicants`}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 text-blue-300 rounded-lg text-sm hover:bg-blue-500/20 transition-colors"
+                      >
                         <Eye size={14} />
                         View Applications
-                      </button>
+                      </Link>
                       <button className="flex items-center gap-1 px-3 py-1.5 bg-slate-700/50 text-slate-300 rounded-lg text-sm hover:bg-slate-700 transition-colors">
                         <Edit size={14} />
                         Edit

@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 
 const User = require('./models/User');
 const Job = require('./models/Job');
+const Application = require('./models/Application'); // Import Application model
 
 dotenv.config();
 
@@ -548,33 +549,297 @@ app.post('/api/jobs/:id/apply', authenticateToken, async (req, res) => {
     }
 });
 
-// GET: Get jobs a student has applied to
+// =====================
+// APPLICATION ROUTES
+// =====================
+
+// POST: Student applies to a job
+app.post('/api/applications', authenticateToken, async (req, res) => {
+    try {
+        // Only students can apply
+        if (req.user.role !== 'student') {
+            return res.status(403).json({ message: 'Only students can apply to jobs' });
+        }
+
+        const { jobId, coverLetter } = req.body;
+
+        // Check if job exists
+        const job = await Job.findById(jobId);
+        if (!job) {
+            return res.status(404).json({ message: 'Job not found' });
+        }
+
+        // Check if job is still active
+        if (!job.isActive) {
+            return res.status(400).json({ message: 'This job is no longer accepting applications' });
+        }
+
+        // Check if already applied (unique index will also catch this)
+        const existingApplication = await Application.findOne({
+            job: jobId,
+            student: req.user.id
+        });
+
+        if (existingApplication) {
+            return res.status(400).json({ message: 'You have already applied to this job' });
+        }
+
+        // Get student's current resume
+        const student = await User.findById(req.user.id);
+        const resumeSnapshot = student?.studentProfile?.resume || '';
+
+        // Create application
+        const application = new Application({
+            job: jobId,
+            student: req.user.id,
+            status: 'pending',
+            coverLetter: coverLetter || '',
+            resumeSnapshot: resumeSnapshot,
+            appliedDate: new Date()
+        });
+
+        await application.save();
+
+        // Also add to job's applicants array (for backward compatibility)
+        await Job.findByIdAndUpdate(jobId, {
+            $addToSet: { applicants: req.user.id }
+        });
+
+        return res.status(201).json({
+            message: 'Application submitted successfully',
+            application: {
+                id: application._id,
+                status: application.status,
+                appliedDate: application.appliedDate
+            }
+        });
+    } catch (err) {
+        // Handle duplicate key error
+        if (err.code === 11000) {
+            return res.status(400).json({ message: 'You have already applied to this job' });
+        }
+        console.error('Error submitting application:', err);
+        return res.status(500).json({ message: 'Server error submitting application' });
+    }
+});
+
+// GET: Get applications for a specific job (Recruiter only)
+app.get('/api/applications/job/:jobId', authenticateToken, async (req, res) => {
+    try {
+        // Only recruiters can view applicants
+        if (req.user.role !== 'recruiter') {
+            return res.status(403).json({ message: 'Only recruiters can view applicants' });
+        }
+
+        const { jobId } = req.params;
+
+        // Verify the job belongs to this recruiter
+        const job = await Job.findById(jobId);
+        if (!job) {
+            return res.status(404).json({ message: 'Job not found' });
+        }
+
+        if (job.postedBy.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'You can only view applicants for your own jobs' });
+        }
+
+        // Fetch applications with student details
+        const applications = await Application.find({ job: jobId })
+            .populate('student', 'name email phoneNumber profilePhoto studentProfile')
+            .sort({ appliedDate: -1 });
+
+        const formattedApplications = applications.map(app => ({
+            _id: app._id,
+            status: app.status,
+            statusMessage: app.statusMessage,
+            appliedDate: app.appliedDate,
+            updatedAt: app.updatedAt,
+            coverLetter: app.coverLetter,
+            resumeSnapshot: app.resumeSnapshot,
+            daysSinceApplied: app.daysSinceApplied,
+            student: {
+                _id: app.student._id,
+                name: app.student.name,
+                email: app.student.email,
+                phoneNumber: app.student.phoneNumber,
+                profilePhoto: app.student.profilePhoto,
+                studentProfile: app.student.studentProfile
+            }
+        }));
+
+        return res.json({
+            job: {
+                _id: job._id,
+                title: job.title,
+                company: job.company
+            },
+            applications: formattedApplications,
+            totalApplications: formattedApplications.length
+        });
+    } catch (err) {
+        console.error('Error fetching job applications:', err);
+        return res.status(500).json({ message: 'Server error fetching applications' });
+    }
+});
+
+// GET: Get student's applications (Updated to use Application model)
 app.get('/api/applications/student/:studentId', authenticateToken, async (req, res) => {
     try {
         const { studentId } = req.params;
 
-        // Find all jobs where student is in applicants array
-        const jobs = await Job.find({ applicants: studentId })
-            .populate('postedBy', 'name email recruiterProfile')
-            .sort({ createdAt: -1 });
+        // Students can only view their own applications
+        if (req.user.id !== studentId && req.user.role !== 'recruiter') {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
 
-        const applications = jobs.map(job => ({
-            id: job._id,
-            jobId: job._id,
-            title: job.title,
-            company: job.company,
-            logo: job.logo,
-            location: job.location,
-            salary: job.salary,
-            type: job.type,
-            appliedDate: job.createdAt, // You might want to track actual application date separately
-            status: 'pending' // You can extend the schema to track application status
+        // Fetch applications with job details
+        const applications = await Application.find({ student: studentId })
+            .populate({
+                path: 'job',
+                select: 'title company logo location salary type experience isActive postedBy',
+                populate: {
+                    path: 'postedBy',
+                    select: 'name email recruiterProfile'
+                }
+            })
+            .sort({ appliedDate: -1 });
+
+        const formattedApplications = applications.map(app => ({
+            _id: app._id,
+            jobId: app.job._id,
+            title: app.job.title,
+            company: app.job.company,
+            logo: app.job.logo,
+            location: app.job.location,
+            salary: app.job.salary,
+            type: app.job.type,
+            experience: app.job.experience,
+            isActive: app.job.isActive,
+            appliedDate: app.appliedDate,
+            status: app.status,
+            statusMessage: app.statusMessage,
+            updatedAt: app.updatedAt,
+            daysSinceApplied: app.daysSinceApplied,
+            recruiter: app.job.postedBy ? {
+                name: app.job.postedBy.name,
+                company: app.job.postedBy.recruiterProfile?.companyName
+            } : null
         }));
 
-        return res.json({ applications });
+        return res.json({ applications: formattedApplications });
     } catch (err) {
-        console.error('Error fetching applications:', err);
+        console.error('Error fetching student applications:', err);
         return res.status(500).json({ message: 'Server error fetching applications' });
+    }
+});
+
+// PUT: Update application status (Recruiter only)
+app.put('/api/applications/:applicationId/status', authenticateToken, async (req, res) => {
+    try {
+        // Only recruiters can update status
+        if (req.user.role !== 'recruiter') {
+            return res.status(403).json({ message: 'Only recruiters can update application status' });
+        }
+
+        const { applicationId } = req.params;
+        const { status, statusMessage } = req.body;
+
+        // Validate status
+        const validStatuses = ['pending', 'in-review', 'shortlisted', 'interview', 'accepted', 'rejected'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'Invalid status value' });
+        }
+
+        // Find application and verify ownership
+        const application = await Application.findById(applicationId).populate('job');
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+
+        // Verify the job belongs to this recruiter
+        if (application.job.postedBy.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'You can only update applications for your own jobs' });
+        }
+
+        // Update application
+        application.status = status;
+        application.statusMessage = statusMessage || '';
+        application.updatedAt = new Date();
+
+        await application.save();
+
+        return res.json({
+            message: 'Application status updated successfully',
+            application: {
+                _id: application._id,
+                status: application.status,
+                statusMessage: application.statusMessage,
+                updatedAt: application.updatedAt
+            }
+        });
+    } catch (err) {
+        console.error('Error updating application status:', err);
+        return res.status(500).json({ message: 'Server error updating application' });
+    }
+});
+
+// DELETE: Student withdraws application
+app.delete('/api/applications/:applicationId', authenticateToken, async (req, res) => {
+    try {
+        const { applicationId } = req.params;
+
+        // Find application
+        const application = await Application.findById(applicationId);
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+
+        // Students can only withdraw their own applications
+        if (application.student.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'You can only withdraw your own applications' });
+        }
+
+        // Check if application can be withdrawn (not if already accepted/rejected)
+        if (['accepted', 'rejected'].includes(application.status)) {
+            return res.status(400).json({ message: 'Cannot withdraw an application that has been finalized' });
+        }
+
+        // Remove from job's applicants array
+        await Job.findByIdAndUpdate(application.job, {
+            $pull: { applicants: req.user.id }
+        });
+
+        // Delete application
+        await Application.findByIdAndDelete(applicationId);
+
+        return res.json({ message: 'Application withdrawn successfully' });
+    } catch (err) {
+        console.error('Error withdrawing application:', err);
+        return res.status(500).json({ message: 'Server error withdrawing application' });
+    }
+});
+
+// GET: Check if student has applied to a job
+app.get('/api/applications/check/:jobId', authenticateToken, async (req, res) => {
+    try {
+        const { jobId } = req.params;
+
+        const application = await Application.findOne({
+            job: jobId,
+            student: req.user.id
+        });
+
+        return res.json({
+            hasApplied: !!application,
+            application: application ? {
+                _id: application._id,
+                status: application.status,
+                appliedDate: application.appliedDate
+            } : null
+        });
+    } catch (err) {
+        console.error('Error checking application:', err);
+        return res.status(500).json({ message: 'Server error' });
     }
 });
 
