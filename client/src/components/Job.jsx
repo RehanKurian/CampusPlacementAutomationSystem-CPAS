@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MapPin,
-  DollarSign,
+  LucideIndianRupee,
   Clock,
   Briefcase,
   Users,
@@ -87,7 +87,7 @@ const Job = ({ job }) => {
           <span className="text-sm truncate">{location}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-400">
-          <DollarSign size={16} className="text-green-400 shrink-0" />
+          <LucideIndianRupee size={16} className="text-green-400 shrink-0" />
           <span className="text-sm">{salary}</span>
         </div>
         <div className="flex items-center gap-4">
@@ -148,13 +148,11 @@ const Job = ({ job }) => {
       </div>
 
       {/* Apply Button - Shows on Hover */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-slate-900 via-slate-900/95 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-2xl">
+      <div>
         <button
           onClick={handleApply}
-          className="w-full py-2.5 bg-linear-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
         >
-          Quick Apply
-          <ArrowUpRight size={18} />
+       
         </button>
       </div>
     </div>

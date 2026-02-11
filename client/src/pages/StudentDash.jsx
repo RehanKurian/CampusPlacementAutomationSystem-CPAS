@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Briefcase,
@@ -34,9 +34,17 @@ const StudentDash = () => {
   // user: current logged-in user from global state
   // isAuthenticated: is user logged in?
   // isStudent: is user a student?
-  const { user, isAuthenticated, isStudent } = useAuth();
+  const { user, token, isAuthenticated, isStudent } = useAuth();
   
   const [loading, setLoading] = useState(true);
+  const [recentApplications, setRecentApplications] = useState([]);
+  const [recentApplicationsLoading, setRecentApplicationsLoading] = useState(true);
+  const [recentApplicationsError, setRecentApplicationsError] = useState('');
+  const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [recommendedJobsLoading, setRecommendedJobsLoading] = useState(true);
+  const [recommendedJobsMessage, setRecommendedJobsMessage] = useState('');
+
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     // ============================================
@@ -52,110 +60,192 @@ const StudentDash = () => {
     setLoading(false);
   }, [navigate, isAuthenticated, user]);
 
-  // Mock data - Replace with real API calls later
-  const stats = [
-    {
-      icon: Briefcase,
-      label: 'Applications Sent',
-      value: '12',
-      change: '+3 this week',
-      changeType: 'positive',
-      color: 'from-blue-500 to-cyan-500'
-    },
-    {
-      icon: CheckCircle,
-      label: 'Shortlisted',
-      value: '5',
-      change: '+2 new',
-      changeType: 'positive',
-      color: 'from-green-500 to-emerald-500'
-    },
-    {
-      icon: Clock,
-      label: 'In Progress',
-      value: '7',
-      change: '3 interviews pending',
-      changeType: 'neutral',
-      color: 'from-yellow-500 to-orange-500'
-    },
-    {
-      icon: Award,
-      label: 'Profile Score',
-      value: '85%',
-      change: '+5% improvement',
-      changeType: 'positive',
-      color: 'from-purple-500 to-pink-500'
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id || !token) {
+      return;
     }
-  ];
 
-  const recentApplications = [
-    {
-      id: 1,
-      company: 'Google Inc.',
-      position: 'Software Engineer',
-      location: 'Bangalore, India',
-      salary: '₹15-20 LPA',
-      appliedDate: '2 days ago',
-      status: 'shortlisted',
-      logo: '🔵'
-    },
-    {
-      id: 2,
-      company: 'Microsoft',
-      position: 'Frontend Developer',
-      location: 'Hyderabad, India',
-      salary: '₹12-18 LPA',
-      appliedDate: '5 days ago',
-      status: 'in-progress',
-      logo: '🟦'
-    },
-    {
-      id: 3,
-      company: 'Amazon',
-      position: 'Full Stack Developer',
-      location: 'Mumbai, India',
-      salary: '₹18-25 LPA',
-      appliedDate: '1 week ago',
-      status: 'pending',
-      logo: '🟧'
-    }
-  ];
+    let isMounted = true;
 
-  const recommendedJobs = [
-    {
-      id: 1,
-      company: 'Apple',
-      position: 'iOS Developer',
-      location: 'Remote',
-      salary: '₹20-30 LPA',
-      type: 'Full-time',
-      match: '95%',
-      logo: '🍎',
-      tags: ['Swift', 'iOS', 'Remote']
-    },
-    {
-      id: 2,
-      company: 'Netflix',
-      position: 'Backend Engineer',
-      location: 'Bangalore',
-      salary: '₹22-28 LPA',
-      type: 'Full-time',
-      match: '92%',
-      logo: '🔴',
-      tags: ['Node.js', 'AWS', 'Microservices']
-    },
-    {
-      id: 3,
-      company: 'Meta',
-      position: 'React Developer',
-      location: 'Gurgaon',
-      salary: '₹18-24 LPA',
-      type: 'Full-time',
-      match: '88%',
-      logo: '🔵',
-      tags: ['React', 'TypeScript', 'GraphQL']
+    const fetchRecentApplications = async () => {
+      try {
+        setRecentApplicationsLoading(true);
+        setRecentApplicationsError('');
+
+        const response = await fetch(
+          `${API_BASE}/api/applications/student/${user.id}?limit=10`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch applications');
+        }
+
+        if (isMounted) {
+          setRecentApplications(data.applications || []);
+        }
+      } catch (err) {
+        console.error('Error fetching recent applications:', err);
+        if (isMounted) {
+          setRecentApplicationsError('Failed to load recent applications');
+        }
+      } finally {
+        if (isMounted) {
+          setRecentApplicationsLoading(false);
+        }
+      }
+    };
+
+    fetchRecentApplications();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [API_BASE, isAuthenticated, token, user?.id]);
+
+  // ============================================
+  // FETCH RECOMMENDED JOBS
+  // ============================================
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id || !token) {
+      return;
     }
-  ];
+
+    let isMounted = true;
+
+    const fetchRecommendedJobs = async () => {
+      try {
+        setRecommendedJobsLoading(true);
+        setRecommendedJobsMessage('');
+
+        const response = await fetch(
+          `${API_BASE}/api/jobs/recommended/${user.id}?limit=5`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch recommendations');
+        }
+
+        if (isMounted) {
+          setRecommendedJobs(data.jobs || []);
+          if (data.message) {
+            setRecommendedJobsMessage(data.message);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching recommended jobs:', err);
+        if (isMounted) {
+          setRecommendedJobsMessage('Failed to load recommendations');
+        }
+      } finally {
+        if (isMounted) {
+          setRecommendedJobsLoading(false);
+        }
+      }
+    };
+
+    fetchRecommendedJobs();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [API_BASE, isAuthenticated, token, user?.id]);
+
+  // ============================================
+  // CALCULATE PROFILE SCORE
+  // ============================================
+  const calculateProfileScore = (userData) => {
+    if (!userData) return 0;
+
+    const profile = userData.studentProfile || {};
+    const totalFields = 12;
+    let filledFields = 0;
+
+    // Personal fields (4)
+    if (profile.usn) filledFields++;
+    if (profile.gender) filledFields++;
+    if (profile.dob) filledFields++;
+    if (userData.phoneNumber) filledFields++;
+
+    // Education fields (4)
+    if (profile.branch) filledFields++;
+    if (profile.cgpa && profile.cgpa > 0) filledFields++;
+    if (profile.tenthMarks && profile.tenthMarks > 0) filledFields++;
+    if (profile.twelfthMarks && profile.twelfthMarks > 0) filledFields++;
+
+    // Professional fields (4)
+    if (Array.isArray(profile.skills) && profile.skills.length > 0) filledFields++;
+    if (profile.resume) filledFields++;
+    if (Array.isArray(profile.experience) && profile.experience.length > 0) filledFields++;
+    if (Array.isArray(profile.certifications) && profile.certifications.length > 0) filledFields++;
+
+    return Math.round((filledFields / totalFields) * 100);
+  };
+
+  // ============================================
+  // DYNAMIC STATS FROM APPLICATIONS & PROFILE
+  // ============================================
+  const stats = useMemo(() => {
+    const totalApplications = recentApplications.length;
+    const shortlistedCount = recentApplications.filter(
+      (app) => app.status === 'shortlisted' || app.status === 'accepted'
+    ).length;
+    const inProgressCount = recentApplications.filter(
+      (app) => ['pending', 'in-review', 'interview'].includes(app.status)
+    ).length;
+    const interviewCount = recentApplications.filter(
+      (app) => app.status === 'interview'
+    ).length;
+    const profileScore = calculateProfileScore(user);
+
+    return [
+      {
+        icon: Briefcase,
+        label: 'Applications Sent',
+        value: String(totalApplications),
+        change: totalApplications > 0 ? 'Keep applying!' : 'Start applying',
+        changeType: totalApplications > 0 ? 'positive' : 'neutral',
+        color: 'from-blue-500 to-cyan-500'
+      },
+      {
+        icon: CheckCircle,
+        label: 'Shortlisted',
+        value: String(shortlistedCount),
+        change: shortlistedCount > 0 ? 'Great progress!' : 'Pending review',
+        changeType: shortlistedCount > 0 ? 'positive' : 'neutral',
+        color: 'from-green-500 to-emerald-500'
+      },
+      {
+        icon: Clock,
+        label: 'In Progress',
+        value: String(inProgressCount),
+        change: interviewCount > 0 ? `${interviewCount} interview(s) scheduled` : 'Awaiting response',
+        changeType: 'neutral',
+        color: 'from-yellow-500 to-orange-500'
+      },
+      {
+        icon: Award,
+        label: 'Profile Score',
+        value: `${profileScore}%`,
+        change: profileScore === 100 ? 'Profile complete!' : 'Complete your profile',
+        changeType: profileScore >= 75 ? 'positive' : profileScore >= 50 ? 'neutral' : 'negative',
+        color: 'from-purple-500 to-pink-500'
+      }
+    ];
+  }, [recentApplications, user]);
 
   const activityFeed = [
     {
@@ -194,29 +284,47 @@ const StudentDash = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      shortlisted: {
-        bg: 'bg-green-500/20',
-        text: 'text-green-300',
-        border: 'border-green-500/30',
-        label: 'Shortlisted'
-      },
-      'in-progress': {
-        bg: 'bg-yellow-500/20',
-        text: 'text-yellow-300',
-        border: 'border-yellow-500/30',
-        label: 'In Progress'
-      },
       pending: {
         bg: 'bg-slate-500/20',
         text: 'text-slate-300',
         border: 'border-slate-500/30',
         label: 'Pending'
       },
+      'in-review': {
+        bg: 'bg-blue-500/20',
+        text: 'text-blue-300',
+        border: 'border-blue-500/30',
+        label: 'In Review'
+      },
+      shortlisted: {
+        bg: 'bg-green-500/20',
+        text: 'text-green-300',
+        border: 'border-green-500/30',
+        label: 'Shortlisted'
+      },
+      interview: {
+        bg: 'bg-cyan-500/20',
+        text: 'text-cyan-300',
+        border: 'border-cyan-500/30',
+        label: 'Interview'
+      },
+      accepted: {
+        bg: 'bg-green-500/20',
+        text: 'text-green-300',
+        border: 'border-green-500/30',
+        label: 'Accepted'
+      },
       rejected: {
         bg: 'bg-red-500/20',
         text: 'text-red-300',
         border: 'border-red-500/30',
         label: 'Rejected'
+      },
+      'in-progress': {
+        bg: 'bg-yellow-500/20',
+        text: 'text-yellow-300',
+        border: 'border-yellow-500/30',
+        label: 'In Progress'
       }
     };
 
@@ -226,6 +334,18 @@ const StudentDash = () => {
         {config.label}
       </span>
     );
+  };
+
+  const formatRelativeDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   if (loading) {
@@ -306,43 +426,53 @@ const StudentDash = () => {
               </div>
 
               <div className="space-y-4">
-                {recentApplications.map((app) => (
-                  <div
-                    key={app.id}
-                    className="group p-5 bg-slate-900/50 border border-slate-700 rounded-xl hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex gap-4 flex-1">
-                        <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-2xl shrink-0">
-                          {app.logo}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-blue-400 transition-colors">
-                            {app.position}
-                          </h3>
-                          <p className="text-slate-400 mb-3">{app.company}</p>
-                          <div className="flex flex-wrap gap-3 text-sm text-slate-400">
-                            <span className="flex items-center gap-1">
-                              <MapPin size={14} />
-                              {app.location}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <DollarSign size={14} />
-                              {app.salary}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock size={14} />
-                              {app.appliedDate}
-                            </span>
+                {recentApplicationsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : recentApplicationsError ? (
+                  <div className="text-sm text-red-400">{recentApplicationsError}</div>
+                ) : recentApplications.length === 0 ? (
+                  <div className="text-sm text-slate-400">No applications yet.</div>
+                ) : (
+                  recentApplications.map((app) => (
+                    <div
+                      key={app._id}
+                      className="group p-5 bg-slate-900/50 border border-slate-700 rounded-xl hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex gap-4 flex-1">
+                          <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-2xl shrink-0">
+                            {app.logo || '🏢'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-blue-400 transition-colors">
+                              {app.title || 'Untitled Role'}
+                            </h3>
+                            <p className="text-slate-400 mb-3">{app.company || 'Company'}</p>
+                            <div className="flex flex-wrap gap-3 text-sm text-slate-400">
+                              <span className="flex items-center gap-1">
+                                <MapPin size={14} />
+                                {app.location || 'Location'}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <DollarSign size={14} />
+                                {app.salary || 'Salary'}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock size={14} />
+                                {formatRelativeDate(app.appliedDate)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div>
-                        {getStatusBadge(app.status)}
+                        <div>
+                          {getStatusBadge(app.status)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -381,48 +511,78 @@ const StudentDash = () => {
               </h2>
 
               <div className="space-y-4">
-                {recommendedJobs.map((job) => (
-                  <div
-                    key={job.id}
-                    className="group p-5 bg-slate-900/50 border border-slate-700 rounded-xl hover:border-green-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 cursor-pointer"
-                    onClick={() => navigate('/student/jobs')}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex gap-3">
-                        <div className="w-10 h-10 bg-linear-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center text-xl shrink-0">
-                          {job.logo}
-                        </div>
-                        <div>
-                          <h3 className="text-base font-semibold text-white mb-1 group-hover:text-green-400 transition-colors">
-                            {job.position}
-                          </h3>
-                          <p className="text-sm text-slate-400">{job.company}</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-1 bg-green-500/20 text-green-300 border border-green-500/30 rounded-full text-xs font-bold">
-                        {job.match}
-                      </span>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {job.tags.map((tag, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-slate-800 text-slate-300 rounded text-xs">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-400">{job.location}</span>
-                      <span className="text-blue-400 font-medium">{job.salary}</span>
-                    </div>
-
-                    <button className="w-full mt-4 px-4 py-2 bg-green-500/20 text-green-300 border border-green-500/30 rounded-lg hover:bg-green-500/30 transition-all duration-300 flex items-center justify-center gap-2 font-medium">
-                      Apply Now
-                      <ArrowUpRight size={16} />
+                {recommendedJobsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : recommendedJobsMessage && recommendedJobs.length === 0 ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-slate-400 mb-3">{recommendedJobsMessage}</p>
+                    <button
+                      onClick={() => navigate('/student/profile')}
+                      className="text-sm text-green-400 hover:text-green-300 font-medium"
+                    >
+                      Update Profile →
                     </button>
                   </div>
-                ))}
+                ) : recommendedJobs.length === 0 ? (
+                  <div className="text-sm text-slate-400">No matching jobs found.</div>
+                ) : (
+                  recommendedJobs.map((job) => (
+                    <div
+                      key={job._id}
+                      className="group p-5 bg-slate-900/50 border border-slate-700 rounded-xl hover:border-green-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 cursor-pointer"
+                      onClick={() => navigate(`/student/jobs/${job._id}`)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex gap-3">
+                          <div className="w-10 h-10 bg-linear-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center text-xl shrink-0">
+                            {job.logo || '🏢'}
+                          </div>
+                          <div>
+                            <h3 className="text-base font-semibold text-white mb-1 group-hover:text-green-400 transition-colors">
+                              {job.title}
+                            </h3>
+                            <p className="text-sm text-slate-400">{job.company}</p>
+                          </div>
+                        </div>
+                        <span className="px-2 py-1 bg-green-500/20 text-green-300 border border-green-500/30 rounded-full text-xs font-bold">
+                          {job.matchPercentage}%
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {(job.skills || []).slice(0, 4).map((skill, idx) => {
+                          const isMatching = (job.matchingSkills || []).some(
+                            (s) => s.toLowerCase() === skill.toLowerCase()
+                          );
+                          return (
+                            <span
+                              key={idx}
+                              className={`px-2 py-1 rounded text-xs ${
+                                isMatching
+                                  ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                  : 'bg-slate-800 text-slate-300'
+                              }`}
+                            >
+                              {skill}
+                            </span>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-400">{job.location}</span>
+                        <span className="text-blue-400 font-medium">{job.salary}</span>
+                      </div>
+
+                      <button className="w-full mt-4 px-4 py-2 bg-green-500/20 text-green-300 border border-green-500/30 rounded-lg hover:bg-green-500/30 transition-all duration-300 flex items-center justify-center gap-2 font-medium">
+                        View Job
+                        <ArrowUpRight size={16} />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
 
               <button 

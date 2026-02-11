@@ -41,6 +41,16 @@ const RecruiterDash = () => {
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(true);
+  const [recentApplications, setRecentApplications] = useState([]);
+  const [recentApplicationsLoading, setRecentApplicationsLoading] = useState(true);
+  const [recentApplicationsError, setRecentApplicationsError] = useState('');
+  const [applicationStats, setApplicationStats] = useState({
+    shortlisted: 0,
+    hired: 0,
+    total: 0
+  });
+
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     // ============================================
@@ -63,11 +73,12 @@ const RecruiterDash = () => {
 
     // Fetch jobs posted by this recruiter using token from context
     fetchRecruiterJobs(user.id, token);
+    fetchRecentApplications(user.id, token);
   }, [navigate, isAuthenticated, user, token, isRecruiter]);
 
   const fetchRecruiterJobs = async (recruiterId, authToken) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/jobs/recruiter/${recruiterId}`, {
+      const response = await fetch(`${API_BASE}/api/jobs/recruiter/${recruiterId}`, {
         headers: {
           'Authorization': `Bearer ${authToken}`  // Use token passed as parameter
         }
@@ -87,7 +98,7 @@ const RecruiterDash = () => {
     if (!window.confirm('Are you sure you want to delete this job?')) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/jobs/${jobId}`, {
+      const response = await fetch(`${API_BASE}/api/jobs/${jobId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`  // Use token from context
@@ -105,6 +116,10 @@ const RecruiterDash = () => {
   // Calculate stats from actual jobs data
   const totalApplications = jobs.reduce((sum, job) => sum + (job.applicantCount || 0), 0);
   const activeJobsCount = jobs.filter(job => job.isActive).length;
+
+  const shortlistedPercent = applicationStats.total > 0
+    ? Math.round((applicationStats.shortlisted / applicationStats.total) * 100)
+    : 0;
 
   const stats = [
     {
@@ -126,65 +141,58 @@ const RecruiterDash = () => {
     {
       icon: CheckCircle,
       label: 'Shortlisted',
-      value: '42',
-      change: '27% of applications',
+      value: String(applicationStats.shortlisted),
+      change: applicationStats.total > 0
+        ? `${shortlistedPercent}% of applications`
+        : 'No applications yet',
       changeType: 'neutral',
       color: 'from-green-500 to-emerald-500'
     },
     {
       icon: Users,
       label: 'Hired',
-      value: '12',
-      change: '+3 this month',
-      changeType: 'positive',
+      value: String(applicationStats.hired),
+      change: applicationStats.hired > 0 ? 'Great hires!' : 'No hires yet',
+      changeType: applicationStats.hired > 0 ? 'positive' : 'neutral',
       color: 'from-yellow-500 to-orange-500'
     }
   ];
 
   // Jobs are now fetched from API and stored in 'jobs' state
 
-  const recentApplications = [
-    {
-      id: 1,
-      studentName: 'Arjun Kumar',
-      studentPhoto: '👨‍💻',
-      position: 'Senior Software Engineer',
-      appliedDate: '2 hours ago',
-      status: 'new',
-      cgpa: 8.5,
-      skills: ['React', 'Node.js', 'Python']
-    },
-    {
-      id: 2,
-      studentName: 'Priya Sharma',
-      studentPhoto: '👩‍💻',
-      position: 'Frontend Developer',
-      appliedDate: '5 hours ago',
-      status: 'new',
-      cgpa: 9.1,
-      skills: ['React', 'TypeScript', 'CSS']
-    },
-    {
-      id: 3,
-      studentName: 'Rahul Singh',
-      studentPhoto: '👨‍🎓',
-      position: 'Data Analyst',
-      appliedDate: '1 day ago',
-      status: 'reviewed',
-      cgpa: 8.8,
-      skills: ['Python', 'SQL', 'Tableau']
-    },
-    {
-      id: 4,
-      studentName: 'Sneha Patel',
-      studentPhoto: '👩‍🎓',
-      position: 'Senior Software Engineer',
-      appliedDate: '2 days ago',
-      status: 'shortlisted',
-      cgpa: 9.3,
-      skills: ['Java', 'Spring Boot', 'AWS']
+  const fetchRecentApplications = async (recruiterId, authToken) => {
+    try {
+      setRecentApplicationsLoading(true);
+      setRecentApplicationsError('');
+
+      const response = await fetch(
+        `${API_BASE}/api/applications/recruiter/${recruiterId}?limit=10`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setRecentApplications(data.applications || []);
+        setApplicationStats({
+          shortlisted: data.stats?.shortlisted || 0,
+          hired: data.stats?.hired || 0,
+          total: data.stats?.total || 0
+        });
+      } else {
+        setRecentApplicationsError(data.message || 'Failed to fetch applications');
+      }
+    } catch (err) {
+      console.error('Error fetching recent applications:', err);
+      setRecentApplicationsError('Failed to connect to server');
+    } finally {
+      setRecentApplicationsLoading(false);
     }
-  ];
+  };
 
   const activityFeed = [
     {
@@ -222,14 +230,30 @@ const RecruiterDash = () => {
   ];
 
   const statusConfig = {
-    new: { label: 'New', bg: 'bg-blue-500/10', color: 'text-blue-400', border: 'border-blue-500/30' },
-    reviewed: { label: 'Reviewed', bg: 'bg-yellow-500/10', color: 'text-yellow-400', border: 'border-yellow-500/30' },
+    pending: { label: 'New', bg: 'bg-blue-500/10', color: 'text-blue-400', border: 'border-blue-500/30' },
+    'in-review': { label: 'In Review', bg: 'bg-yellow-500/10', color: 'text-yellow-400', border: 'border-yellow-500/30' },
     shortlisted: { label: 'Shortlisted', bg: 'bg-green-500/10', color: 'text-green-400', border: 'border-green-500/30' },
-    rejected: { label: 'Rejected', bg: 'bg-red-500/10', color: 'text-red-400', border: 'border-red-500/30' }
+    interview: { label: 'Interview', bg: 'bg-cyan-500/10', color: 'text-cyan-400', border: 'border-cyan-500/30' },
+    accepted: { label: 'Accepted', bg: 'bg-emerald-500/10', color: 'text-emerald-400', border: 'border-emerald-500/30' },
+    rejected: { label: 'Rejected', bg: 'bg-red-500/10', color: 'text-red-400', border: 'border-red-500/30' },
+    reviewed: { label: 'Reviewed', bg: 'bg-yellow-500/10', color: 'text-yellow-400', border: 'border-yellow-500/30' },
+    new: { label: 'New', bg: 'bg-blue-500/10', color: 'text-blue-400', border: 'border-blue-500/30' }
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatRelativeDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
@@ -422,52 +446,82 @@ const RecruiterDash = () => {
                   </div>
                   <h2 className="text-xl font-semibold text-white">Recent Applications</h2>
                 </div>
-                <Link
+                {/* <Link
                   to="/admin/applications"
                   className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
                 >
                   View All <ChevronRight size={16} />
-                </Link>
+                </Link> */}
               </div>
 
               <div className="space-y-4">
-                {recentApplications.map((application) => {
-                  const status = statusConfig[application.status];
-                  return (
-                    <div
-                      key={application.id}
-                      className="flex items-center gap-4 bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-all"
-                    >
-                      <div className="w-12 h-12 bg-slate-700/50 rounded-full flex items-center justify-center text-2xl border border-slate-600">
-                        {application.studentPhoto}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium text-white truncate">{application.studentName}</h3>
-                          <span className={`px-2 py-0.5 ${status.bg} ${status.color} text-xs rounded-full border ${status.border}`}>
-                            {status.label}
-                          </span>
+                {recentApplicationsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : recentApplicationsError ? (
+                  <div className="text-sm text-red-400">{recentApplicationsError}</div>
+                ) : recentApplications.length === 0 ? (
+                  <div className="text-sm text-slate-400">No applications yet.</div>
+                ) : (
+                  recentApplications.map((application) => {
+                    const status = statusConfig[application.status] || statusConfig.pending;
+                    const student = application.student || {};
+                    const job = application.job || {};
+                    const skills = Array.isArray(student.skills) ? student.skills : [];
+                    return (
+                      <div
+                        key={application._id}
+                        className="flex items-center gap-4 bg-slate-900/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-all"
+                      >
+                        <div className="w-12 h-12 bg-slate-700/50 rounded-full flex items-center justify-center text-2xl border border-slate-600 overflow-hidden">
+                          {student.profilePhoto ? (
+                            <img
+                              src={student.profilePhoto}
+                              alt={student.name || 'Student'}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span>👤</span>
+                          )}
                         </div>
-                        <p className="text-sm text-slate-400 truncate">
-                          Applied for {application.position} • CGPA: {application.cgpa}
-                        </p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {application.skills.slice(0, 3).map((skill, idx) => (
-                            <span key={idx} className="px-2 py-0.5 bg-slate-700/50 text-slate-300 text-xs rounded border border-slate-600">
-                              {skill}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium text-white truncate">{student.name || 'Student'}</h3>
+                            <span className={`px-2 py-0.5 ${status.bg} ${status.color} text-xs rounded-full border ${status.border}`}>
+                              {status.label}
                             </span>
-                          ))}
+                          </div>
+                          <p className="text-sm text-slate-400 truncate">
+                            Applied for {job.title || 'Role'} • CGPA: {student.cgpa ?? 'N/A'}
+                          </p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {skills.slice(0, 3).map((skill, idx) => (
+                              <span key={idx} className="px-2 py-0.5 bg-slate-700/50 text-slate-300 text-xs rounded border border-slate-600">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-slate-400">{formatRelativeDate(application.appliedDate)}</p>
+                          {job._id ? (
+                            <Link
+                              to={`/admin/jobs/${job._id}/applicants`}
+                              className="mt-2 text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                            >
+                              Review <ArrowUpRight size={14} />
+                            </Link>
+                          ) : (
+                            <span className="mt-2 text-sm text-slate-500 flex items-center gap-1">
+                              Review <ArrowUpRight size={14} />
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-slate-400">{application.appliedDate}</p>
-                        <button className="mt-2 text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
-                          Review <ArrowUpRight size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>

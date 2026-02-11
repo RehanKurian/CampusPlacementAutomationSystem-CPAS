@@ -50,7 +50,7 @@ const JobApplicants = () => {
   const [statusMessage, setStatusMessage] = useState('');
   const [statusModal, setStatusModal] = useState({ open: false, applicationId: null, newStatus: '' });
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';//for 
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   // Status configuration for styling and actions
   const statusConfig = {

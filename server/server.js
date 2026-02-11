@@ -379,6 +379,80 @@ app.get('/api/jobs', async (req, res) => {
     }
 });
 
+// READ: Get recommended jobs for a student based on skill matching
+app.get('/api/jobs/recommended/:studentId', authenticateToken, async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const limit = Math.min(parseInt(req.query.limit, 10) || 5, 20);
+
+        // Verify the student is requesting their own recommendations
+        if (req.user.id !== studentId) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        // Get student's skills
+        const student = await User.findById(studentId).select('studentProfile.skills');
+        const studentSkills = student?.studentProfile?.skills || [];
+
+        if (studentSkills.length === 0) {
+            return res.json({ 
+                jobs: [], 
+                message: 'Add skills to your profile to get job recommendations' 
+            });
+        }
+
+        // Find active jobs that have at least one matching skill
+        const jobs = await Job.find({ 
+            isActive: true,
+            skills: { $in: studentSkills }
+        })
+            .populate('postedBy', 'name email recruiterProfile')
+            .lean();
+
+        // Calculate match percentage for each job
+        const jobsWithMatch = jobs.map(job => {
+            const jobSkills = job.skills || [];
+            const matchingSkills = jobSkills.filter(skill => 
+                studentSkills.some(s => s.toLowerCase() === skill.toLowerCase())
+            );
+            const matchPercentage = jobSkills.length > 0 
+                ? Math.round((matchingSkills.length / jobSkills.length) * 100)
+                : 0;
+
+            return {
+                _id: job._id,
+                title: job.title,
+                company: job.company,
+                logo: job.logo,
+                location: job.location,
+                salary: job.salary,
+                type: job.type,
+                skills: job.skills,
+                matchPercentage,
+                matchingSkills,
+                createdAt: job.createdAt,
+                postedDate: getRelativeTime(job.createdAt)
+            };
+        });
+
+        // Sort by match percentage (highest first), then by date
+        jobsWithMatch.sort((a, b) => {
+            if (b.matchPercentage !== a.matchPercentage) {
+                return b.matchPercentage - a.matchPercentage;
+            }
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+
+        // Return top N jobs
+        const recommendedJobs = jobsWithMatch.slice(0, limit);
+
+        return res.json({ jobs: recommendedJobs });
+    } catch (err) {
+        console.error('Error fetching recommended jobs:', err);
+        return res.status(500).json({ message: 'Server error fetching recommendations' });
+    }
+});
+
 // READ: Get jobs posted by a specific recruiter
 app.get('/api/jobs/recruiter/:recruiterId', authenticateToken, async (req, res) => {
     try {
@@ -686,6 +760,7 @@ app.get('/api/applications/job/:jobId', authenticateToken, async (req, res) => {
 app.get('/api/applications/student/:studentId', authenticateToken, async (req, res) => {
     try {
         const { studentId } = req.params;
+        const limit = Math.min(parseInt(req.query.limit, 10) || 0, 50);
 
         // Students can only view their own applications
         if (req.user.id !== studentId && req.user.role !== 'recruiter') {
@@ -693,7 +768,7 @@ app.get('/api/applications/student/:studentId', authenticateToken, async (req, r
         }
 
         // Fetch applications with job details
-        const applications = await Application.find({ student: studentId })
+        let applicationsQuery = Application.find({ student: studentId })
             .populate({
                 path: 'job',
                 select: 'title company logo location salary type experience isActive postedBy',
@@ -703,6 +778,12 @@ app.get('/api/applications/student/:studentId', authenticateToken, async (req, r
                 }
             })
             .sort({ appliedDate: -1 });
+
+        if (limit > 0) {
+            applicationsQuery = applicationsQuery.limit(limit);
+        }
+
+        const applications = await applicationsQuery;
 
         const formattedApplications = applications.map(app => ({
             _id: app._id,
@@ -729,6 +810,79 @@ app.get('/api/applications/student/:studentId', authenticateToken, async (req, r
         return res.json({ applications: formattedApplications });
     } catch (err) {
         console.error('Error fetching student applications:', err);
+        return res.status(500).json({ message: 'Server error fetching applications' });
+    }
+});
+
+// GET: Get recent applications across recruiter's jobs
+app.get('/api/applications/recruiter/:recruiterId', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'recruiter') {
+            return res.status(403).json({ message: 'Only recruiters can view recent applications' });
+        }
+
+        const { recruiterId } = req.params;
+        if (req.user.id !== recruiterId) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+
+        const jobs = await Job.find({ postedBy: recruiterId })
+            .select('_id title company');
+
+        if (jobs.length === 0) {
+            return res.json({
+                applications: [],
+                stats: {
+                    shortlisted: 0,
+                    hired: 0,
+                    total: 0
+                }
+            });
+        }
+
+        const jobIds = jobs.map(job => job._id);
+
+        const [applications, shortlistedCount, hiredCount, totalCount] = await Promise.all([
+            Application.find({ job: { $in: jobIds } })
+            .populate('student', 'name profilePhoto studentProfile')
+            .populate('job', 'title company')
+            .sort({ appliedDate: -1 })
+            .limit(limit),
+            Application.countDocuments({ job: { $in: jobIds }, status: 'shortlisted' }),
+            Application.countDocuments({ job: { $in: jobIds }, status: 'accepted' }),
+            Application.countDocuments({ job: { $in: jobIds } })
+        ]);
+
+        const formattedApplications = applications.map(app => ({
+            _id: app._id,
+            status: app.status,
+            appliedDate: app.appliedDate,
+            job: app.job ? {
+                _id: app.job._id,
+                title: app.job.title,
+                company: app.job.company
+            } : null,
+            student: app.student ? {
+                _id: app.student._id,
+                name: app.student.name,
+                profilePhoto: app.student.profilePhoto,
+                cgpa: app.student.studentProfile?.cgpa,
+                skills: app.student.studentProfile?.skills || []
+            } : null
+        }));
+
+        return res.json({
+            applications: formattedApplications,
+            stats: {
+                shortlisted: shortlistedCount,
+                hired: hiredCount,
+                total: totalCount
+            }
+        });
+    } catch (err) {
+        console.error('Error fetching recruiter applications:', err);
         return res.status(500).json({ message: 'Server error fetching applications' });
     }
 });
