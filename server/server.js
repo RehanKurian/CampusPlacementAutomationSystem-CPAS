@@ -4,10 +4,13 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const User = require('./models/User');
 const Job = require('./models/Job');
 const Application = require('./models/Application'); // Import Application model
+const { buildEmailContent } = require('./utils/emailTemplates');
+const { uploadResume, getPublicIdFromUrl, deleteFromCloudinary } = require('./utils/cloudinary');
 
 dotenv.config();
 
@@ -365,7 +368,7 @@ app.get('/api/jobs', async (req, res) => {
             description: job.description,
             skills: job.skills,
             postedBy: job.postedBy,
-            applicants: job.applicants.length,
+            applicantCount: job.applicants.length,  
             isActive: job.isActive,
             isNew: job.isNew,
             createdAt: job.createdAt,
@@ -997,10 +1000,110 @@ app.get('/api/applications/check/:jobId', authenticateToken, async (req, res) =>
     }
 });
 
+// POST: Send bulk emails to applicants
+app.post('/api/emails/send-bulk', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'recruiter') {
+            return res.status(403).json({ message: 'Only recruiters can send bulk emails' });
+        }
+
+        const { applicationIds, status, subject, message } = req.body;
+
+        if (!applicationIds || !Array.isArray(applicationIds) || applicationIds.length === 0) {
+            return res.status(400).json({ message: 'No applications selected' });
+        }
+
+        // Get recruiter info
+        const recruiter = await User.findById(req.user.id);
+        if (!recruiter) {
+            return res.status(404).json({ message: 'Recruiter not found' });
+        }
+
+        // Fetch applications with student and job details
+        const applications = await Application.find({ _id: { $in: applicationIds } })
+            .populate('student', 'name email')
+            .populate('job', 'title company postedBy');
+
+        // Filter to only applications belonging to this recruiter's jobs
+        const validApplications = applications.filter(
+            app => app.job && app.job.postedBy.toString() === req.user.id
+        );
+
+        if (validApplications.length === 0) {
+            return res.status(403).json({ message: 'No valid applications found for your jobs' });
+        }
+
+        // Create email transporter
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL,
+                pass: process.env.GMAIL_APP_PASSWORD
+            }
+        });
+
+        let sent = 0;
+        let failed = 0;
+        const errors = [];
+
+        // Send emails to each applicant
+        for (const app of validApplications) {
+            try {
+                const emailContent = buildEmailContent({
+                    status: status || app.status,
+                    studentName: app.student.name,
+                    jobTitle: app.job.title,
+                    companyName: recruiter.recruiterProfile?.companyName || app.job.company,
+                    recruiterName: recruiter.name,
+                    recruiterPosition: recruiter.recruiterProfile?.position || 'Recruiter',
+                    recruiterEmail: recruiter.email,
+                    statusMessage: app.statusMessage,
+                    customMessage: message,
+                    subjectOverride: subject
+                });
+
+                await transporter.sendMail({
+                    from: process.env.GMAIL,
+                    to: app.student.email,
+                    subject: emailContent.subject,
+                    text: emailContent.text,
+                    html: emailContent.html
+                });
+
+                sent++;
+            } catch (emailErr) {
+                console.error(`Failed to send email to ${app.student.email}:`, emailErr.message);
+                failed++;
+                errors.push({ email: app.student.email, error: emailErr.message });
+            }
+        }
+
+        return res.json({
+            message: `Emails sent successfully`,
+            sent,
+            failed,
+            total: validApplications.length,
+            errors: errors.length > 0 ? errors : undefined
+        });
+    } catch (err) {
+        console.error('Error sending bulk emails:', err);
+        return res.status(500).json({ message: 'Server error sending emails' });
+    }
+});
+
 // Helper function to get relative time
 function getRelativeTime(date) {
+    if (!date) {
+        return 'Unknown';
+    }
+
+    const parsedDate = new Date(date);
+    if (Number.isNaN(parsedDate.getTime())) {
+        return 'Unknown';
+    }
+
     const now = new Date();
-    const diffTime = Math.abs(now - new Date(date));
+    const diffTime = Math.abs(now - parsedDate);
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return 'Today';
@@ -1011,6 +1114,147 @@ function getRelativeTime(date) {
     return `${Math.floor(diffDays / 30)} month(s) ago`;
 }
 
+// =====================
+// RESUME UPLOAD ROUTES
+// =====================
+
+// POST: Upload resume (for students)
+app.post('/api/upload/resume', authenticateToken, (req, res) => {
+    uploadResume.single('resume')(req, res, async (err) => {
+        // Handle multer errors
+        if (err) {
+            console.error('Upload error:', err);
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ message: 'File size exceeds 5MB limit' });
+            }
+            return res.status(400).json({ message: err.message || 'Error uploading file' });
+        }
+
+        // Check if file was uploaded
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+        
+        try {
+            const userId = req.user.id;
+            const resumeUrl = req.file.path; // Cloudinary URL
+
+            // Get the user to check for existing resume
+            const existingUser = await User.findById(userId);
+            if (existingUser?.studentProfile?.resume) {
+                // Delete old resume from Cloudinary
+                const oldPublicId = getPublicIdFromUrl(existingUser.studentProfile.resume);
+                if (oldPublicId) {
+                    try {
+                        await deleteFromCloudinary(oldPublicId);
+                    } catch (deleteErr) {
+                        console.error('Error deleting old resume:', deleteErr);
+                        // Continue even if old file deletion fails
+                    }
+                }
+            }
+
+            // Update user's resume field
+            const user = await User.findByIdAndUpdate(
+                userId,
+                { $set: { 'studentProfile.resume': resumeUrl } },
+                { new: true }
+            ).select('-password');
+
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            return res.json({
+                message: 'Resume uploaded successfully',
+                resumeUrl: resumeUrl,
+                user: {
+                    id: user._id,
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    phoneNumber: user.phoneNumber,
+                    profilePhoto: user.profilePhoto,
+                    studentProfile: user.studentProfile,
+                    recruiterProfile: user.recruiterProfile,
+                },
+            });
+        } catch (error) {
+            console.error('Error saving resume URL:', error);
+            return res.status(500).json({ message: 'Error saving resume' });
+        }
+    });
+});
+
+// DELETE: Delete resume (for students)
+app.delete('/api/upload/resume', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Get user to find current resume URL
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const resumeUrl = user.studentProfile?.resume;
+        if (!resumeUrl) {
+            return res.status(400).json({ message: 'No resume to delete' });
+        }
+
+        // Delete from Cloudinary
+        const publicId = getPublicIdFromUrl(resumeUrl);
+        if (publicId) {
+            await deleteFromCloudinary(publicId);
+        }
+
+        // Remove resume URL from database
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { $unset: { 'studentProfile.resume': '' } },
+            { new: true }
+        ).select('-password');
+
+        return res.json({
+            message: 'Resume deleted successfully',
+            user: {
+                id: updatedUser._id,
+                _id: updatedUser._id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                role: updatedUser.role,
+                phoneNumber: updatedUser.phoneNumber,
+                profilePhoto: updatedUser.profilePhoto,
+                studentProfile: updatedUser.studentProfile,
+                recruiterProfile: updatedUser.recruiterProfile,
+            },
+        });
+    } catch (error) {
+        console.error('Error deleting resume:', error);
+        return res.status(500).json({ message: 'Error deleting resume' });
+    }
+});
+
+// TEST ROUTE - Remove after debugging
+app.post('/api/test-upload', (req, res) => {
+    console.log('Test upload route hit');
+    console.log('Headers:', req.headers);
+    
+    uploadResume.single('resume')(req, res, (err) => {
+        console.log('Multer callback');
+        console.log('Error:', err);
+        console.log('File:', req.file);
+        
+        if (err) {
+            return res.status(400).json({ message: err.message });
+        }
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file' });
+        }
+        res.json({ success: true, url: req.file.path });
+    });
+});
 
 mongoose.connect(mongoUri)
 	.then(() => {

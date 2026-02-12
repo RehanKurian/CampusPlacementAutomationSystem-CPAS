@@ -419,10 +419,13 @@ const RecruiterDash = () => {
                         <Eye size={14} />
                         View Applications
                       </Link>
-                      <button className="flex items-center gap-1 px-3 py-1.5 bg-slate-700/50 text-slate-300 rounded-lg text-sm hover:bg-slate-700 transition-colors">
+                      <Link
+                        to={`/admin/jobs?edit=${job._id}`}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-700/50 text-slate-300 rounded-lg text-sm hover:bg-slate-700 transition-colors"
+                      >
                         <Edit size={14} />
                         Edit
-                      </button>
+                      </Link>
                       <button 
                         onClick={() => handleDeleteJob(job._id)}
                         className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 text-red-300 rounded-lg text-sm hover:bg-red-500/20 transition-colors"
@@ -583,7 +586,7 @@ const RecruiterDash = () => {
             </div>
 
             {/* Activity Feed */}
-            <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6">
+            {/* <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-green-500/10 rounded-lg border border-green-500/30">
                   <Activity className="text-green-400" size={20} />
@@ -607,10 +610,10 @@ const RecruiterDash = () => {
                   );
                 })}
               </div>
-            </div>
+            </div> */}
 
             {/* Performance Overview */}
-            <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6">
+            {/* <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/30">
                   <Target className="text-cyan-400" size={20} />
@@ -649,7 +652,7 @@ const RecruiterDash = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

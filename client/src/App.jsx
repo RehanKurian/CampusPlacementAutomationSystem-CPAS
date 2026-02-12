@@ -22,6 +22,7 @@ import RecruiterDash from './pages/RecruiterDash';
 import CreateJob from './pages/CreateJob';
 import AllStudents from './pages/Students';
 import JobApplicants from './pages/JobApplicants';
+import RecruiterPostings from './pages/RecruiterPostings';
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
         <Route path="/admin/dashboard" element={<RecruiterDash />} />
         <Route path="/admin/create-job" element={<CreateJob />} />
         <Route path="/admin/students" element={<AllStudents />} />
+        <Route path="/admin/jobs" element={<RecruiterPostings />} />
         <Route path="/admin/jobs/:id/applicants" element={<JobApplicants />} />
 
       

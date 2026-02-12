@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, Edit2, Save, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronDown, Edit2, Save, X, FileText, Upload, Trash2, Loader2 } from 'lucide-react';
 
 const StudentProfile = ({ user, onUserUpdate }) => {
   // Initial State
@@ -25,6 +25,9 @@ const StudentProfile = ({ user, onUserUpdate }) => {
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [deletingResume, setDeletingResume] = useState(false);
+  const fileInputRef = useRef(null);
 
   // FIX: Robust Data Syncing from Props
   useEffect(() => {
@@ -70,6 +73,13 @@ const StudentProfile = ({ user, onUserUpdate }) => {
   const experience = formData.experience;
   const skills = formData.skills;
   const certifications = formData.certifications;
+
+  // Helper to make Cloudinary PDF viewable in browser instead of downloading
+  const getViewableResumeUrl = (url) => {
+    if (!url) return null;
+    // Use Google Docs Viewer to display PDF inline
+    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  };
 
   // Toggle edit mode for a section
   const toggleEdit = (section) => {
@@ -136,6 +146,95 @@ const StudentProfile = ({ user, onUserUpdate }) => {
       ...prev,
       certifications: prev.certifications.filter((_, i) => i !== index)
     }));
+  };
+
+  // Handle resume upload
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      setMessage('Please upload a PDF file only');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadingResume(true);
+    setMessage('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const formDataUpload = new FormData();
+      formDataUpload.append('resume', file);
+
+      const response = await fetch('http://localhost:5000/api/upload/resume', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formDataUpload,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage('Resume uploaded successfully');
+        if (onUserUpdate && data.user) {
+          onUserUpdate(data.user);
+        }
+      } else {
+        setMessage(data.message || 'Failed to upload resume');
+      }
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      setMessage('Error uploading resume');
+    } finally {
+      setUploadingResume(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Handle resume delete
+  const handleResumeDelete = async () => {
+    if (!confirm('Are you sure you want to delete your resume?')) return;
+
+    setDeletingResume(true);
+    setMessage('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/upload/resume', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage('Resume deleted successfully');
+        if (onUserUpdate && data.user) {
+          onUserUpdate(data.user);
+        }
+      } else {
+        setMessage(data.message || 'Failed to delete resume');
+      }
+    } catch (error) {
+      console.error('Error deleting resume:', error);
+      setMessage('Error deleting resume');
+    } finally {
+      setDeletingResume(false);
+    }
   };
 
   // Save updates to server
@@ -415,12 +514,81 @@ const StudentProfile = ({ user, onUserUpdate }) => {
         {/* Resume */}
         <div className="p-6 bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl">
           <h2 className="text-xl font-semibold text-white mb-4">Resume</h2>
+          
+          {/* Hidden file input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleResumeUpload}
+            accept=".pdf"
+            className="hidden"
+          />
+
           {s.resume ? (
-            <a href={s.resume} target="_blank" rel="noreferrer" className="inline-block px-4 py-2 bg-white text-blue-600 rounded-lg font-medium">
-              View Resume
-            </a>
+            <div className="space-y-4">
+              {/* Current resume display */}
+              <div className="flex items-center gap-3 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+                <FileText size={24} className="text-blue-400" />
+                <div className="flex-1">
+                  <p className="text-white font-medium">Resume uploaded</p>
+                  <p className="text-slate-400 text-sm">PDF document</p>
+                </div>
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href={getViewableResumeUrl(s.resume)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  <FileText size={18} />
+                  View Resume
+                </a>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingResume}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  {uploadingResume ? (
+                    <><Loader2 size={18} className="animate-spin" /> Uploading...</>
+                  ) : (
+                    <><Upload size={18} /> Replace</>
+                  )}
+                </button>
+                <button
+                  onClick={handleResumeDelete}
+                  disabled={deletingResume}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  {deletingResume ? (
+                    <><Loader2 size={18} className="animate-spin" /> Deleting...</>
+                  ) : (
+                    <><Trash2 size={18} /> Delete</>
+                  )}
+                </button>
+              </div>
+            </div>
           ) : (
-            <p className="text-slate-400">No resume uploaded</p>
+            <div className="space-y-4">
+              <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-600 rounded-lg">
+                <Upload size={40} className="text-slate-500 mb-3" />
+                <p className="text-slate-300 font-medium">No resume uploaded</p>
+                <p className="text-slate-500 text-sm mb-4">Upload a PDF file (max 5MB)</p>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingResume}
+                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  {uploadingResume ? (
+                    <><Loader2 size={18} className="animate-spin" /> Uploading...</>
+                  ) : (
+                    <><Upload size={18} /> Upload Resume</>
+                  )}
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </section>

@@ -49,8 +49,23 @@ const JobApplicants = () => {
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [statusModal, setStatusModal] = useState({ open: false, applicationId: null, newStatus: '' });
+  const [selectedApplicationIds, setSelectedApplicationIds] = useState(new Set());
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState('shortlisted');
+  const [bulkSubject, setBulkSubject] = useState('');
+  const [bulkMessage, setBulkMessage] = useState('');
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkError, setBulkError] = useState('');
+  const [bulkResult, setBulkResult] = useState(null);
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  // Helper to make Cloudinary PDF viewable in browser instead of downloading
+  const getViewableResumeUrl = (url) => {
+    if (!url) return null;
+    // Use Google Docs Viewer to display PDF inline
+    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  };
 
   // Status configuration for styling and actions
   const statusConfig = {
@@ -224,6 +239,76 @@ const JobApplicants = () => {
     });
   };
 
+  const toggleSelectApplication = (applicationId) => {
+    setSelectedApplicationIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(applicationId)) {
+        next.delete(applicationId);
+      } else {
+        next.add(applicationId);
+      }
+      return next;
+    });
+  };
+
+  const selectedCount = selectedApplicationIds.size;
+  const allFilteredSelected =
+    filteredApplications.length > 0 &&
+    filteredApplications.every((application) => selectedApplicationIds.has(application._id));
+
+  const toggleSelectAllFiltered = () => {
+    setSelectedApplicationIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filteredApplications.forEach((application) => next.delete(application._id));
+      } else {
+        filteredApplications.forEach((application) => next.add(application._id));
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedApplicationIds(new Set());
+  };
+
+  const handleBulkSend = async () => {
+    if (selectedCount === 0) return;
+
+    try {
+      setBulkSending(true);
+      setBulkError('');
+      setBulkResult(null);
+
+      const response = await fetch(`${API_BASE}/api/emails/send-bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          applicationIds: Array.from(selectedApplicationIds),
+          status: bulkStatus,
+          subject: bulkSubject,
+          message: bulkMessage
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send emails');
+      }
+
+      setBulkResult(data);
+    } catch (err) {
+      console.error('Error sending bulk email:', err);
+      setBulkError(err.message || 'Failed to send emails');
+    } finally {
+      setBulkSending(false);
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -375,6 +460,31 @@ const JobApplicants = () => {
           <p className="text-slate-400">
             Showing <span className="text-white font-semibold">{filteredApplications.length}</span> of {applications.length} applicants
           </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleSelectAllFiltered}
+              className="text-sm text-slate-400 hover:text-white transition-colors"
+            >
+              {allFilteredSelected ? 'Unselect filtered' : 'Select filtered'}
+            </button>
+            {selectedCount > 0 && (
+              <>
+                <button
+                  onClick={() => setBulkEmailOpen(true)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 text-purple-300 rounded-lg border border-purple-500/30 hover:bg-purple-500/20 transition-colors text-sm"
+                >
+                  <Mail size={14} />
+                  Send Email ({selectedCount})
+                </button>
+                <button
+                  onClick={clearSelection}
+                  className="text-sm text-slate-400 hover:text-white transition-colors"
+                >
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Applicants List */}
@@ -446,9 +556,17 @@ const JobApplicants = () => {
                     {/* Status and Actions */}
                     <div className="flex flex-col gap-3 lg:items-end lg:min-w-[200px]">
                       {/* Current Status */}
-                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${status.bg} border ${status.border}`}>
-                        <StatusIcon size={16} className={status.color} />
-                        <span className={`text-sm font-medium ${status.color}`}>{status.label}</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedApplicationIds.has(application._id)}
+                          onChange={() => toggleSelectApplication(application._id)}
+                          className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                        />
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${status.bg} border ${status.border}`}>
+                          <StatusIcon size={16} className={status.color} />
+                          <span className={`text-sm font-medium ${status.color}`}>{status.label}</span>
+                        </div>
                       </div>
 
                       {/* Applied Date */}
@@ -508,24 +626,23 @@ const JobApplicants = () => {
 
                   {/* Action Buttons */}
                   <div className="mt-4 pt-4 border-t border-slate-700 flex flex-wrap gap-3">
-                    {profile.resume && (
+                    {(application.resumeSnapshot || profile.resume) && (
                       <a
-                        href={profile.resume}
+                        href={getViewableResumeUrl(application.resumeSnapshot || profile.resume)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-300 rounded-lg border border-blue-500/30 hover:bg-blue-500/20 transition-colors text-sm"
                       >
                         <FileText size={16} />
                         View Resume
+                        {application.resumeSnapshot && (
+                          <span className="text-xs text-slate-500">(at time of application)</span>
+                        )}
                       </a>
                     )}
-                    <a
-                      href={`mailto:${student.email}`}
-                      className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 text-purple-300 rounded-lg border border-purple-500/30 hover:bg-purple-500/20 transition-colors text-sm"
-                    >
-                      <Mail size={16} />
-                      Send Email
-                    </a>
+                    {!application.resumeSnapshot && !profile.resume && (
+                      <span className="text-sm text-slate-500">No resume available</span>
+                    )}
                   </div>
                 </div>
               );
@@ -621,6 +738,106 @@ const JobApplicants = () => {
                     </>
                   ) : (
                     'Confirm Update'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Email Modal */}
+      {bulkEmailOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-semibold text-white">Send Bulk Email</h3>
+                <p className="text-sm text-slate-400">{selectedCount} applicants selected</p>
+              </div>
+              <button
+                onClick={() => {
+                  setBulkEmailOpen(false);
+                  setBulkError('');
+                  setBulkResult(null);
+                }}
+                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {bulkError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-300">
+                  {bulkError}
+                </div>
+              )}
+              {bulkResult && (
+                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-300">
+                  Sent {bulkResult.sent} email(s). Failed: {bulkResult.failed}.
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Template Status</label>
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-xl text-white appearance-none focus:outline-none focus:border-blue-500"
+                >
+                  {statusOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value} className="bg-slate-800">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Subject Override (Optional)</label>
+                <input
+                  value={bulkSubject}
+                  onChange={(e) => setBulkSubject(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  placeholder="Leave blank to use the default subject"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Additional Message (Optional)</label>
+                <textarea
+                  value={bulkMessage}
+                  onChange={(e) => setBulkMessage(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                  placeholder="Add a note that will be appended to the template"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setBulkEmailOpen(false);
+                    setBulkError('');
+                    setBulkResult(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-slate-700 text-slate-300 rounded-xl hover:bg-slate-600 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleBulkSend}
+                  disabled={bulkSending || selectedCount === 0}
+                  className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {bulkSending ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    'Send Emails'
                   )}
                 </button>
               </div>
