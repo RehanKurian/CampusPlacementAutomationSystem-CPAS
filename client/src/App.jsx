@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 
 // Import Components
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 
 // Import Pages
 import Home from './pages/Home';
@@ -32,7 +33,7 @@ function App() {
       <AuthProvider>
         {/* Navbar is outside Routes so it shows on EVERY page */}
         <Navbar /> 
-        
+      
         <Routes>
         {/* PUBLIC ROUTES (Anyone can see) */}
         <Route path="/" element={<Home />} />

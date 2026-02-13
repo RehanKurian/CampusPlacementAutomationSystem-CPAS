@@ -18,7 +18,6 @@ import {
   Search,
   ChevronRight,
   Building,
-  Zap,
   Activity
 } from 'lucide-react';
 
@@ -247,40 +246,116 @@ const StudentDash = () => {
     ];
   }, [recentApplications, user]);
 
-  const activityFeed = [
-    {
-      id: 1,
-      type: 'interview',
-      message: 'Interview scheduled with Google for Software Engineer',
-      time: '2 hours ago',
-      icon: Calendar,
-      color: 'text-blue-400'
-    },
-    {
-      id: 2,
-      type: 'shortlist',
-      message: 'You have been shortlisted by Microsoft',
-      time: '1 day ago',
-      icon: CheckCircle,
-      color: 'text-green-400'
-    },
-    {
-      id: 3,
-      type: 'application',
-      message: 'Application sent to Amazon for Full Stack Developer',
-      time: '3 days ago',
-      icon: FileText,
-      color: 'text-purple-400'
-    },
-    {
-      id: 4,
-      type: 'recommendation',
-      message: '5 new jobs match your profile',
-      time: '5 days ago',
-      icon: Zap,
-      color: 'text-yellow-400'
+  const formatRelativeDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatRelativeDateTime = (dateString) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Recently';
+
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes} min ago`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+
+    return formatRelativeDate(dateString);
+  };
+
+  const getActivityMeta = (status, title, company) => {
+    switch (status) {
+      case 'interview':
+        return {
+          message: `Interview scheduled for ${title} at ${company}`,
+          icon: Calendar,
+          color: 'text-blue-400'
+        };
+      case 'shortlisted':
+        return {
+          message: `Shortlisted by ${company} for ${title}`,
+          icon: CheckCircle,
+          color: 'text-green-400'
+        };
+      case 'accepted':
+        return {
+          message: `Offer received from ${company} for ${title}`,
+          icon: Award,
+          color: 'text-green-400'
+        };
+      case 'rejected':
+        return {
+          message: `Application update: Not selected by ${company}`,
+          icon: XCircle,
+          color: 'text-red-400'
+        };
+      case 'in-review':
+        return {
+          message: `Application under review at ${company}`,
+          icon: Clock,
+          color: 'text-blue-300'
+        };
+      case 'pending':
+        return {
+          message: `Application submitted to ${company} for ${title}`,
+          icon: Clock,
+          color: 'text-slate-300'
+        };
+      default:
+        return {
+          message: `Status update for ${title} at ${company}`,
+          icon: Bell,
+          color: 'text-slate-300'
+        };
     }
-  ];
+  };
+
+  const activityFeed = useMemo(() => {
+    const items = [];
+
+    recentApplications.forEach((app) => {
+      if (!app?.appliedDate) return;
+
+      const appliedDate = new Date(app.appliedDate);
+      if (Number.isNaN(appliedDate.getTime())) return;
+
+      const title = app.title || 'a role';
+      const company = app.company || 'Company';
+      const time = formatRelativeDateTime(app.appliedDate);
+
+      items.push({
+        id: `${app._id}-applied`,
+        message: `Applied to ${title} at ${company}`,
+        time,
+        icon: FileText,
+        color: 'text-purple-400',
+        date: appliedDate
+      });
+
+      if (app.status) {
+        const meta = getActivityMeta(app.status, title, company);
+        items.push({
+          id: `${app._id}-${app.status}`,
+          time,
+          date: appliedDate,
+          ...meta
+        });
+      }
+    });
+
+    return items.sort((a, b) => b.date - a.date);
+  }, [recentApplications]);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -336,17 +411,6 @@ const StudentDash = () => {
     );
   };
 
-  const formatRelativeDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
 
   if (loading) {
     return (
@@ -484,20 +548,28 @@ const StudentDash = () => {
               </h2>
 
               <div className="space-y-4">
-                {activityFeed.map((activity) => {
-                  const Icon = activity.icon;
-                  return (
-                    <div key={activity.id} className="flex gap-4 items-start">
-                      <div className={`w-10 h-10 rounded-lg bg-slate-900/50 border border-slate-700 flex items-center justify-center shrink-0 ${activity.color}`}>
-                        <Icon size={18} />
+                {recentApplicationsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : activityFeed.length === 0 ? (
+                  <div className="text-sm text-slate-400">No recent activity yet.</div>
+                ) : (
+                  activityFeed.map((activity) => {
+                    const Icon = activity.icon;
+                    return (
+                      <div key={activity.id} className="flex gap-4 items-start">
+                        <div className={`w-10 h-10 rounded-lg bg-slate-900/50 border border-slate-700 flex items-center justify-center shrink-0 ${activity.color}`}>
+                          <Icon size={18} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-slate-300 mb-1">{activity.message}</p>
+                          <p className="text-xs text-slate-500">{activity.time}</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-slate-300 mb-1">{activity.message}</p>
-                        <p className="text-xs text-slate-500">{activity.time}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
