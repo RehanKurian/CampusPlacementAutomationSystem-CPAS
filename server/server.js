@@ -1091,7 +1091,7 @@ app.post('/api/emails/send-bulk', authenticateToken, async (req, res) => {
     }
 });
 
-// Helper function to get relative time
+// Helper function to format an absolute posted date
 function getRelativeTime(date) {
     if (!date) {
         return 'Unknown';
@@ -1102,16 +1102,11 @@ function getRelativeTime(date) {
         return 'Unknown';
     }
 
-    const now = new Date();
-    const diffTime = Math.abs(now - parsedDate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 14) return '1 week ago';
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return `${Math.floor(diffDays / 30)} month(s) ago`;
+    return parsedDate.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
 }
 
 // =====================

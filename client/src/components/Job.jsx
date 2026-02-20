@@ -26,12 +26,22 @@ const Job = ({ job }) => {
     type,
     experience,
     postedDate,
+    createdAt,
     description,
     skills = [],
     applicants,
     applicantCount,
     isNew
   } = job;
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const displayPostedDate = formatDate(createdAt) || (postedDate && postedDate !== 'Unknown' ? postedDate : '');
 
   // Use _id from MongoDB, fallback to id for backward compatibility
   const jobId = _id || id;
@@ -129,7 +139,7 @@ const Job = ({ job }) => {
         <div className="flex items-center gap-4 text-sm text-slate-400">
           <div className="flex items-center gap-1">
             <Clock size={14} />
-            <span>{postedDate}</span>
+            <span>{displayPostedDate || 'Unknown'}</span>
           </div>
           <div className="flex items-center gap-1">
             <Users size={14} />
@@ -147,14 +157,8 @@ const Job = ({ job }) => {
         </div>
       </div>
 
-      {/* Apply Button - Shows on Hover */}
-      <div>
-        <button
-          onClick={handleApply}
-        >
-       
-        </button>
-      </div>
+     
+      
     </div>
   );
 };

@@ -140,7 +140,9 @@ const JobDetails = () => {
 
   // Format date
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'short',
@@ -148,14 +150,8 @@ const JobDetails = () => {
     });
   };
 
-  // Get days since posted
-  const getDaysSince = (dateString) => {
-    const now = new Date();
-    const posted = new Date(dateString);
-    const diffDays = Math.floor((now - posted) / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    return `${diffDays} days ago`;
+  const getPostedDate = (jobData) => {
+    return formatDate(jobData?.createdAt) || (jobData?.postedDate && jobData.postedDate !== 'Unknown' ? jobData.postedDate : '');
   };
 
   // Loading state
@@ -327,7 +323,7 @@ const JobDetails = () => {
                       <div className="space-y-3 mb-6">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-slate-400">Posted</span>
-                          <span className="text-white">{getDaysSince(job.createdAt)}</span>
+                          <span className="text-white">{getPostedDate(job) || 'Unknown'}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-slate-400">Applicants</span>

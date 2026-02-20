@@ -241,8 +241,14 @@ const RecruiterDash = () => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const getPostedDate = (job) => {
+    return formatDate(job?.createdAt) || (job?.postedDate && job.postedDate !== 'Unknown' ? job.postedDate : '');
   };
 
   const formatRelativeDate = (dateString) => {
@@ -393,7 +399,7 @@ const RecruiterDash = () => {
                           </div>
                           <div className="flex items-center gap-1">
                             <Calendar size={14} />
-                            <span>{job.postedDate || formatDate(job.createdAt)}</span>
+                            <span>{getPostedDate(job) || 'Unknown'}</span>
                           </div>
                         </div>
                       </div>

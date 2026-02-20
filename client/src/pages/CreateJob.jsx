@@ -52,6 +52,37 @@ const CreateJob = () => {
   const jobTypes = ['Full-time', 'Part-time', 'Internship', 'Contract'];
   const experienceLevels = ['0-2 years', '1-3 years', '2-4 years', '3-5 years', '5+ years'];
   const logoOptions = ['🏢', '🔵', '🟦', '🟧', '🔴', '🔷', '🟥', '🍎', '🔶', '💼', '🌐', '⚡'];
+  const locations = [
+    'Remote',
+    'Andhra Pradesh',
+    'Arunachal Pradesh',
+    'Assam',
+    'Bihar',
+    'Chhattisgarh',
+    'Goa',
+    'Gujarat',
+    'Haryana',
+    'Himachal Pradesh',
+    'Jharkhand',
+    'Karnataka',
+    'Kerala',
+    'Madhya Pradesh',
+    'Maharashtra',
+    'Manipur',
+    'Meghalaya',
+    'Mizoram',
+    'Nagaland',
+    'Odisha',
+    'Punjab',
+    'Rajasthan',
+    'Sikkim',
+    'Tamil Nadu',
+    'Telangana',
+    'Tripura',
+    'Uttar Pradesh',
+    'Uttarakhand',
+    'West Bengal'
+  ];
 
   useEffect(() => {
     // ============================================
@@ -279,14 +310,19 @@ const CreateJob = () => {
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    type="text"
+                  <select
                     name="location"
                     value={formData.location}
                     onChange={handleChange}
-                    placeholder="e.g., Bangalore, India or Remote"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
-                  />
+                    className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="" className="bg-slate-800">Select location</option>
+                    {locations.map((location) => (
+                      <option key={location} value={location} className="bg-slate-800">
+                        {location}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

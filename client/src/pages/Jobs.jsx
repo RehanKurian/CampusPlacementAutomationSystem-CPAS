@@ -36,7 +36,38 @@ const Jobs = () => {
   const [jobs, setJobs] = useState([]);
   const [error, setError] = useState('');
 
-  const locations = ['All Locations', 'Bangalore, India', 'Hyderabad, India', 'Mumbai, India', 'Gurgaon, India', 'Noida, India', 'Pune, India', 'Remote'];
+  const locations = [
+    'All Locations',
+    'Remote',
+    'Andhra Pradesh',
+    'Arunachal Pradesh',
+    'Assam',
+    'Bihar',
+    'Chhattisgarh',
+    'Goa',
+    'Gujarat',
+    'Haryana',
+    'Himachal Pradesh',
+    'Jharkhand',
+    'Karnataka',
+    'Kerala',
+    'Madhya Pradesh',
+    'Maharashtra',
+    'Manipur',
+    'Meghalaya',
+    'Mizoram',
+    'Nagaland',
+    'Odisha',
+    'Punjab',
+    'Rajasthan',
+    'Sikkim',
+    'Tamil Nadu',
+    'Telangana',
+    'Tripura',
+    'Uttar Pradesh',
+    'Uttarakhand',
+    'West Bengal'
+  ];
   const jobTypes = ['All Types', 'Full-time', 'Part-time', 'Internship', 'Contract'];
   const experienceLevels = ['All Experience', '0-2 years', '1-3 years', '2-4 years', '3-5 years', '5+ years'];
 
