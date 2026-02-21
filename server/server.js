@@ -347,10 +347,10 @@ app.post('/api/jobs', authenticateToken, async (req, res) => {
     }
 });
 
-// READ: Get all active jobs (for students)
+// READ: Get all jobs (for students)
 app.get('/api/jobs', async (req, res) => {
     try {
-        const jobs = await Job.find({ isActive: true })
+        const jobs = await Job.find({})
             .populate('postedBy', 'name email recruiterProfile')
             .sort({ createdAt: -1 });
 

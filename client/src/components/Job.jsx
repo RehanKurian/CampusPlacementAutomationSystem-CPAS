@@ -31,7 +31,8 @@ const Job = ({ job }) => {
     skills = [],
     applicants,
     applicantCount,
-    isNew
+    isNew,
+    isActive
   } = job;
 
   const formatDate = (dateString) => {
@@ -67,8 +68,12 @@ const Job = ({ job }) => {
       onClick={handleViewDetails}
       className="group relative bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer"
     >
-      {/* New Badge */}
-      {isNew && (
+      {/* Status Badge */}
+      {!isActive ? (
+        <div className="absolute top-4 right-4 px-2 py-1 bg-red-500/20 border border-red-500/30 rounded-full">
+          <span className="text-xs font-medium text-red-400">Inactive</span>
+        </div>
+      ) : isNew && (
         <div className="absolute top-4 right-4 px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-full">
           <span className="text-xs font-medium text-green-400">New</span>
         </div>

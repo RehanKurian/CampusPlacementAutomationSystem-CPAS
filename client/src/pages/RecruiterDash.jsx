@@ -113,6 +113,48 @@ const RecruiterDash = () => {
     }
   };
 
+  const handleToggleJobStatus = async (jobId, currentStatus) => {
+    const actionLabel = currentStatus ? 'deactivate' : 'activate';
+    if (!window.confirm(`Are you sure you want to ${actionLabel} this job?`)) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/jobs/${jobId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          isActive: !currentStatus
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to ${actionLabel} job`);
+      }
+
+      setJobs((prev) =>
+        prev.map((job) =>
+          job._id === jobId
+            ? {
+                ...job,
+                ...(data.job || {}),
+                _id: data.job?._id || job._id,
+                postedDate: job.postedDate,
+                applicantCount: job.applicantCount,
+                applicants: job.applicants
+              }
+            : job
+        )
+      );
+    } catch (err) {
+      console.error('Error toggling job status:', err);
+      alert(err.message || 'Failed to update job status');
+    }
+  };
+
   // Calculate stats from actual jobs data
   const totalApplications = jobs.reduce((sum, job) => sum + (job.applicantCount || 0), 0);
   const activeJobsCount = jobs.filter(job => job.isActive).length;
@@ -432,6 +474,16 @@ const RecruiterDash = () => {
                         <Edit size={14} />
                         Edit
                       </Link>
+                      <button 
+                        onClick={() => handleToggleJobStatus(job._id, job.isActive)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          job.isActive
+                            ? 'bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'
+                            : 'bg-green-500/10 text-green-300 hover:bg-green-500/20'
+                        }`}
+                      >
+                        {job.isActive ? 'Set Inactive' : 'Set Active'}
+                      </button>
                       <button 
                         onClick={() => handleDeleteJob(job._id)}
                         className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 text-red-300 rounded-lg text-sm hover:bg-red-500/20 transition-colors"

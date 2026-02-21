@@ -98,6 +98,12 @@ const Students = () => {
     return matchesSearch && matchesBranch && matchesSkill && matchesCgpa;
   });
 
+  const getViewableResumeUrl = (url) => {
+    if (!url) return null;
+    // Use Google Docs Viewer to display PDF inline
+    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedBranch('');
@@ -417,7 +423,7 @@ const Students = () => {
                     </button>
                     {profile.resume && (
                       <a
-                        href={profile.resume}
+                       href={getViewableResumeUrl(profile.resume)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 px-4 py-2 bg-green-500/10 text-green-300 rounded-lg border border-green-500/30 hover:bg-green-500/20 transition-colors text-sm"
@@ -600,7 +606,7 @@ const Students = () => {
                   {/* Resume Button */}
                   {selectedStudent.studentProfile?.resume && (
                     <a
-                      href={selectedStudent.studentProfile.resume}
+                      href={getViewableResumeUrl(selectedStudent.studentProfile.resume)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 w-full py-3 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all"

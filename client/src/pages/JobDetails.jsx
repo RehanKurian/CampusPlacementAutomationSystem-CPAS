@@ -106,6 +106,11 @@ const JobDetails = () => {
       return;
     }
 
+    if (!job?.isActive) {
+      alert('This job is no longer accepting applications');
+      return;
+    }
+
     setApplying(true);
     try {
       const response = await fetch(`${API_BASE}/api/applications`, {
@@ -220,8 +225,12 @@ const JobDetails = () => {
                       <p className="text-lg text-blue-400">{job.company}</p>
                     </div>
                     
-                    {/* New Badge */}
-                    {job.isNew && (
+                    {/* Status Badge */}
+                    {!job.isActive ? (
+                      <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs font-medium rounded-full border border-red-500/30">
+                        Inactive
+                      </span>
+                    ) : job.isNew && (
                       <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded-full border border-green-500/30">
                         New
                       </span>
@@ -315,7 +324,15 @@ const JobDetails = () => {
                 </div>
               ) : isStudent ? (
                 <>
-                  {!showCoverLetter ? (
+                  {!job.isActive ? (
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/30">
+                        <AlertCircle size={30} className="text-yellow-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-2">Job is inactive</h3>
+                      <p className="text-slate-400 text-sm">This posting is no longer accepting applications.</p>
+                    </div>
+                  ) : !showCoverLetter ? (
                     <>
                       <h3 className="text-lg font-semibold text-white mb-4">Apply for this position</h3>
                       
