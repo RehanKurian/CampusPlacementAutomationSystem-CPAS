@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Select from 'react-select';
+import { City } from 'country-state-city';
 import {
   Briefcase,
   Building,
@@ -23,13 +25,6 @@ import { useAuth } from '../context/AuthContext';
 const CreateJob = () => {
   const navigate = useNavigate();
   
-  // ============================================
-  // GET AUTH STATE FROM CONTEXT
-  // ============================================
-  // user: current logged-in user
-  // token: JWT token for API calls
-  // isAuthenticated: is user logged in?
-  // isRecruiter: is user a recruiter/admin?
   const { user, token, isAuthenticated, isRecruiter } = useAuth();
   
   const [loading, setLoading] = useState(false);
@@ -52,55 +47,88 @@ const CreateJob = () => {
   const jobTypes = ['Full-time', 'Part-time', 'Internship', 'Contract'];
   const experienceLevels = ['0-2 years', '1-3 years', '2-4 years', '3-5 years', '5+ years'];
   const logoOptions = ['🏢', '🔵', '🟦', '🟧', '🔴', '🔷', '🟥', '🍎', '🔶', '💼', '🌐', '⚡'];
-  const locations = [
-    'Remote',
-    'Andhra Pradesh',
-    'Arunachal Pradesh',
-    'Assam',
-    'Bihar',
-    'Chhattisgarh',
-    'Goa',
-    'Gujarat',
-    'Haryana',
-    'Himachal Pradesh',
-    'Jharkhand',
-    'Karnataka',
-    'Kerala',
-    'Madhya Pradesh',
-    'Maharashtra',
-    'Manipur',
-    'Meghalaya',
-    'Mizoram',
-    'Nagaland',
-    'Odisha',
-    'Punjab',
-    'Rajasthan',
-    'Sikkim',
-    'Tamil Nadu',
-    'Telangana',
-    'Tripura',
-    'Uttar Pradesh',
-    'Uttarakhand',
-    'West Bengal'
-  ];
+
+  // ============================================
+  // GENERATE LOCATION DATA (Runs once efficiently)
+  // ============================================
+  const locationOptions = useMemo(() => {
+    const allCities = City.getCitiesOfCountry('IN');
+    const cityOptions = allCities.map(city => ({
+      value: `${city.name}, ${city.stateCode}`,
+      label: `${city.name}, ${city.stateCode}`
+    }));
+
+    return [
+      { value: 'Remote', label: '🏠 Remote' },
+      { value: 'Hybrid', label: '🏢 Hybrid' },
+      ...cityOptions
+    ];
+  }, []);
+
+  // ============================================
+  // CUSTOM STYLES FOR REACT-SELECT (Dark Mode)
+  // ============================================
+  const selectStyles = {
+    control: (base, state) => ({
+      ...base,
+      backgroundColor: 'rgba(15, 23, 42, 0.5)', // Matches bg-slate-900/50
+      borderColor: state.isFocused ? '#3b82f6' : '#475569', // border-blue-500 or border-slate-600
+      borderRadius: '0.75rem', // rounded-xl
+      padding: '4px 4px 4px 35px', // Extra left padding for the MapPin icon
+      boxShadow: 'none',
+      cursor: 'text',
+      '&:hover': {
+        borderColor: state.isFocused ? '#3b82f6' : '#64748b'
+      }
+    }),
+    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+    menu: (base) => ({
+      ...base,
+      backgroundColor: '#1e293b', // bg-slate-800
+      border: '1px solid #475569',
+      borderRadius: '0.75rem',
+      overflow: 'hidden',
+      zIndex: 9999
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isFocused ? '#334155' : 'transparent', // Hover color
+      color: 'white',
+      cursor: 'pointer',
+      padding: '10px 15px',
+      '&:active': {
+        backgroundColor: '#3b82f6' // Click color
+      }
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: 'white'
+    }),
+    input: (base) => ({
+      ...base,
+      color: 'white'
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: '#94a3b8' // text-slate-400
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: '200px' // Keeps the dropdown from getting too tall
+    })
+  };
 
   useEffect(() => {
-    // ============================================
-    // CHECK AUTH USING CONTEXT
-    // ============================================
-    // If not authenticated, redirect to login
     if (!isAuthenticated || !user?.id) {
       navigate('/auth');
       return;
     }
 
-    // If not a recruiter, redirect to student dashboard
     if (!isRecruiter) {
       navigate('/student/dashboard');
       return;
     }
 
-    // Pre-fill company name from recruiter profile if available
     if (user.recruiterProfile?.companyName) {
       setFormData(prev => ({
         ...prev,
@@ -145,7 +173,6 @@ const CreateJob = () => {
     setError('');
     setLoading(true);
 
-    // Validation
     if (!formData.title || !formData.company || !formData.location || !formData.salary || !formData.description) {
       setError('Please fill in all required fields.');
       setLoading(false);
@@ -159,18 +186,15 @@ const CreateJob = () => {
     }
 
     try {
-      // ============================================
-      // USE TOKEN FROM CONTEXT FOR API CALL
-      // ============================================
       const response = await fetch('http://localhost:5000/api/jobs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`  // Use token from context
+          'Authorization': `Bearer ${token}` 
         },
         body: JSON.stringify({
           ...formData,
-          postedBy: user.id  // Use user from context
+          postedBy: user.id 
         })
       });
 
@@ -209,7 +233,6 @@ const CreateJob = () => {
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 py-8 px-4 md:px-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate(-1)}
@@ -227,7 +250,6 @@ const CreateJob = () => {
           <p className="text-slate-400">Fill in the details below to create a new job listing</p>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
             <AlertCircle className="text-red-400 shrink-0" size={20} />
@@ -235,9 +257,7 @@ const CreateJob = () => {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
           <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/30">
@@ -247,7 +267,6 @@ const CreateJob = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Job Title */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Job Title <span className="text-red-400">*</span>
@@ -262,7 +281,6 @@ const CreateJob = () => {
                 />
               </div>
 
-              {/* Company Name */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Company Name <span className="text-red-400">*</span>
@@ -280,7 +298,6 @@ const CreateJob = () => {
                 </div>
               </div>
 
-              {/* Company Logo */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Company Logo/Icon
@@ -303,30 +320,32 @@ const CreateJob = () => {
                 </div>
               </div>
 
-              {/* Location */}
-              <div>
+              {/* ============================================ */}
+              {/* THE NEW SEARCHABLE LOCATION DROPDOWN */}
+              {/* ============================================ */}
+              <div className="relative z-40">
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Location <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <select
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="" className="bg-slate-800">Select location</option>
-                    {locations.map((location) => (
-                      <option key={location} value={location} className="bg-slate-800">
-                        {location}
-                      </option>
-                    ))}
-                  </select>
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={18} />
+                  <Select
+                    options={locationOptions}
+                    value={locationOptions.find(opt => opt.value === formData.location) || null}
+                    onChange={(selectedOption) => {
+                      setFormData(prev => ({ ...prev, location: selectedOption ? selectedOption.value : '' }));
+                      setError(''); // Clear error if they select something
+                    }}
+                    placeholder="Search city..."
+                    isClearable={true}
+                    isSearchable={true}
+                    styles={selectStyles}
+                    menuPortalTarget={document.body} 
+                    menuPosition={'fixed'}
+                  />
                 </div>
               </div>
 
-              {/* Salary */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Salary Range <span className="text-red-400">*</span>
@@ -346,7 +365,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Job Details */}
           <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-purple-500/10 rounded-lg border border-purple-500/30">
@@ -356,7 +374,6 @@ const CreateJob = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Job Type */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Job Type
@@ -376,7 +393,6 @@ const CreateJob = () => {
                 </div>
               </div>
 
-              {/* Experience */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Experience Required
@@ -396,7 +412,6 @@ const CreateJob = () => {
                 </div>
               </div>
 
-              {/* Description */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Job Description <span className="text-red-400">*</span>
@@ -413,7 +428,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Skills */}
           <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-green-500/10 rounded-lg border border-green-500/30">
@@ -423,7 +437,6 @@ const CreateJob = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Skill Input */}
               <div className="flex gap-3">
                 <input
                   type="text"
@@ -443,7 +456,6 @@ const CreateJob = () => {
                 </button>
               </div>
 
-              {/* Skills List */}
               {formData.skills.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {formData.skills.map((skill, index) => (
@@ -466,7 +478,6 @@ const CreateJob = () => {
                 <p className="text-sm text-slate-400">No skills added yet. Add skills like React, Python, Java, etc.</p>
               )}
 
-              {/* Suggested Skills */}
               <div>
                 <p className="text-sm text-slate-400 mb-2">Suggested skills:</p>
                 <div className="flex flex-wrap gap-2">
@@ -487,7 +498,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Preview Card */}
           <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
@@ -520,7 +530,6 @@ const CreateJob = () => {
             </div>
           </div>
 
-          {/* Submit Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <button
               type="submit"

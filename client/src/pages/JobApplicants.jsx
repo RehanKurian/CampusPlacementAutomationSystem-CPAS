@@ -554,7 +554,7 @@ const JobApplicants = () => {
                     </div>
 
                     {/* Status and Actions */}
-                    <div className="flex flex-col gap-3 lg:items-end lg:min-w-[200px]">
+                    <div className="flex flex-col gap-3 lg:items-end lg:min-w-50">
                       {/* Current Status */}
                       <div className="flex items-center gap-2">
                         <input
