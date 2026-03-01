@@ -98,7 +98,7 @@ const Home = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
             <Link
               to="/auth"
-              className="px-8 py-4 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 transform hover:scale-105"
+              className="px-8 py-4 bg-linear-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 transform hover:scale-105"
             >
               Get Started
               <ArrowRight size={20} />

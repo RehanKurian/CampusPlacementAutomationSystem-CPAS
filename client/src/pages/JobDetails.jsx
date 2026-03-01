@@ -214,7 +214,7 @@ const JobDetails = () => {
             <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
               <div className="flex items-start gap-4">
                 {/* Company Logo */}
-                <div className="w-16 h-16 bg-linear-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-3xl flex-shrink-0">
+                <div className="w-16 h-16  bg-slate-600/50 rounded-xl flex items-center justify-center text-3xl flex-shrink-0">
                   {job.logo || '🏢'}
                 </div>
                 
@@ -354,7 +354,7 @@ const JobDetails = () => {
 
                       <button
                         onClick={() => setShowCoverLetter(true)}
-                        className="w-full py-3 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all"
+                        className="w-full py-3 bg-linear-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all"
                       >
                         <Send size={18} />
                         Apply Now

@@ -184,9 +184,11 @@ const CreateJob = () => {
       setLoading(false);
       return;
     }
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 
     try {
-      const response = await fetch('http://localhost:5000/api/jobs', {
+      const response = await fetch(`${API_BASE}/api/jobs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -242,7 +244,7 @@ const CreateJob = () => {
             <span>Back</span>
           </button>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg">
+            <div className="p-2 bg-linear-to-br from-indigo-600 to-indigo-700 rounded-lg">
               <Plus className="text-white" size={24} />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white">Post a New Job</h1>
@@ -534,7 +536,7 @@ const CreateJob = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-4 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-4 bg-linear-to-br from-indigo-600 to-indigo-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>

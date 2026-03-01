@@ -116,7 +116,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/auth?mode=signup"
-                  className="px-6 py-2 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300"
+                  className="px-6 py-2 bg-linear-to-r from-indigo-600 to-blue-600  text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300"
                 >
                   Sign Up
                 </Link>
@@ -189,7 +189,7 @@ const Navbar = () => {
                   <Link
                     to="/auth?mode=signup"
                     onClick={() => setIsOpen(false)}
-                    className="block w-full px-4 py-2 text-center bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300"
+                    className="block w-full px-4 py-2 text-center bg-linear-to-r from-indigo-600 to-blue-700  text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300"
                   >
                     Sign Up
                   </Link>

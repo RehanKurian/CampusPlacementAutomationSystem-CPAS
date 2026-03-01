@@ -432,7 +432,7 @@ const StudentDash = () => {
               </h1>
               <p className="text-slate-400 text-lg">Here's what's happening with your job search today</p>
             </div>
-            <button className="px-6 py-3 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 flex items-center gap-2 w-fit">
+            <button className="px-6 py-3 bg-linear-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 flex items-center gap-2 w-fit">
               <Search size={20} />
               Browse All Jobs
             </button>
@@ -506,7 +506,7 @@ const StudentDash = () => {
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex gap-4 flex-1">
-                          <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-2xl shrink-0">
+                          <div className="w-12 h-12  bg-slate-600/50  rounded-lg flex items-center justify-center text-2xl shrink-0">
                             {app.logo || '🏢'}
                           </div>
                           <div className="flex-1 min-w-0">

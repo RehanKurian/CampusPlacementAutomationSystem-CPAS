@@ -64,11 +64,6 @@ const jobSchema = new mongoose.Schema({
 
 }, { timestamps: true }); // Adds createdAt and updatedAt automatically
 
-// Virtual field to check if job is new (posted within last 7 days)
-jobSchema.virtual('isNew').get(function() {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return this.createdAt > sevenDaysAgo;
-});
 
 // Ensure virtuals are included when converting to JSON
 jobSchema.set('toJSON', { virtuals: true });

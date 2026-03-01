@@ -342,7 +342,7 @@ const Students = () => {
                 >
                   {/* Student Header */}
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="w-14 h-14 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0">
+                    <div className="w-14 h-14 bg-linear-to-br from-indigo-600 to-indigo-700 rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0">
                       {student.name?.charAt(0)?.toUpperCase() || 'S'}
                     </div>
                     <div className="flex-1 min-w-0">

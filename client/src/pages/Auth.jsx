@@ -122,7 +122,7 @@ const Auth = () => {
           <div className="absolute inset-0 mix-blend-overlay opacity-40 transition-transform duration-1000 group-hover:scale-105">
              <img 
                src={userType === 'student' 
-                 ? "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1000&auto=format&fit=crop" 
+                 ? "https://images.unsplash.com/photo-1617721926586-4eecce739745?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
                  : "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1000&auto=format&fit=crop"
                } 
                className="w-full h-full object-cover"

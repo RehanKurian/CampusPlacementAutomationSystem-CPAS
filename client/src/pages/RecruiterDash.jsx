@@ -323,7 +323,7 @@ const RecruiterDash = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg">
+              <div className="p-2 bg-linear-to-br from-indigo-600 to-indigo-700 rounded-lg">
                 <BarChart3 className="text-white" size={24} />
               </div>
               <h1 className="text-3xl md:text-4xl font-bold text-white">Recruiter Dashboard</h1>
@@ -337,7 +337,7 @@ const RecruiterDash = () => {
           </div>
           <Link
             to="/admin/create-job"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-br from-indigo-600 to-indigo-700 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
           >
             <Plus size={20} />
             Post New Job
